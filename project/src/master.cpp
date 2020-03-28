@@ -5,6 +5,7 @@
 
 #include "RayTrace.h"
 #include "master.h"
+#include "common.h"
 
 void masterMain(ConfigData* data)
 {
@@ -48,7 +49,7 @@ void masterMain(ConfigData* data)
             break;
         case PART_MODE_STATIC_BLOCKS:
             startTime = MPI_Wtime();
-            masterStaticStripsBlocks(data, pixels);
+            masterStaticBlocks(data, pixels);
             stopTime = MPI_Wtime();
             break;
         case PART_MODE_STATIC_CYCLES_HORIZONTAL:
@@ -128,26 +129,79 @@ void masterSequential(ConfigData* data, float* pixels)
 }
 
 void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
+    MPI_Status status;
+
     //Start the computation time timer.
     double computationStart = MPI_Wtime();
 
-    //Render the scene.
-    for( int row = 0; row < data->height; ++row )
-    {
-        for( int col = 0; col < data->width; ++col )
-        {
+    // Vars to improve readability
+    int colsMax = data->width;
+    int rowsMax = data->height;
+    // Number of rows to calcualte
+    // Divide rows evenenly amoung processors
+    int rowsPerProcNom = rowsMax/data->mpi_procs;
+    // Some slaves needs to do addtitional work for the remainder
+    int rowsPerProcExtra = rowsPerProcNom + 1;
+    // Int maths leaves a remainder. The remainder will later be distributed to
+    // the first n slaves.
+    int rowsRemain = rowsMax%data->mpi_procs;
 
-            //Calculate the index into the array.
-            int baseIndex = 3 * ( row * data->width + col );
-
-            //Call the function to shade the pixel.
-            shadePixel(&(pixels[baseIndex]),row,col,data);
-        }
+    // How many rows each slaves calcs
+    int rowsToCalc;
+    // Where in the array this slave starts
+    int rowsStart;
+    if (data->mpi_rank < rowsRemain){
+        rowsToCalc = rowsPerProcExtra;
+        rowsStart = (rowsPerProcExtra* data->mpi_rank);
+    } else {
+        rowsToCalc = rowsPerProcNom;
+        rowsStart = (rowsPerProcExtra* rowsRemain) +
+                    ((data->mpi_rank - rowsRemain) * rowsPerProcNom);
     }
+
+    int rowsEnd = rowsStart + rowsToCalc;
+
+    std::cout << "Row Per Proc Nominal" << rowsPerProcNom << std::endl;
+    std::cout << "Row Per Proc Extra" << rowsPerProcExtra << std::endl;
+    std::cout << "Remainder" << rowsRemain << std::endl;
+    std::cout << "Rank " << data->mpi_rank << " Num " << rowsToCalc << " [" <<
+                 rowsStart << ", " << rowsEnd << "] Base I " <<
+                 calcIndex(data, rowsStart, 0) << std::endl;
+
+    //Render the scene.
+    //for( int row = rowsStart; row < rowsEnd; ++row )
+    //{
+        //for( int col = 0; col < colsMax; ++col )
+        //{
+
+            ////Calculate the index into the array.
+            //int baseIndex = calcIndex(data, row, col);
+
+            ////Call the function to shade the pixel.
+            //shadePixel(&(pixels[baseIndex]),row,col,data);
+        //}
+
+    //}
 
     //Stop the comp. timer
     double computationStop = MPI_Wtime();
     double computationTime = computationStop - computationStart;
+
+    // Consolidate all pixels and comm time(Communication)
+    int slave = 1;
+    int baseIndex = 0;
+    int numToSave = 3*rowsPerProcExtra * data->width;
+    for (slave = 1; slave < rowsRemain; slave++){
+        //MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        baseIndex += numToSave;
+    }
+    numToSave = 3*rowsPerProcNom * data->width;
+    for (; slave < data->mpi_procs; slave++){
+        //MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        baseIndex += numToSave;
+    }
+
+
 
     //After receiving from all processes, the communication time will
     //be obtained.

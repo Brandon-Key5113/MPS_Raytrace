@@ -18,7 +18,7 @@ class Camera;
 class World;
 
 //Specify the partitioning types that can be used.
-typedef enum{ 
+typedef enum{
     PART_MODE_NONE = 0,
     PART_MODE_STATIC_STRIPS_HORIZONTAL = 1,
     PART_MODE_STATIC_STRIPS_VERTICAL = 2,
@@ -55,9 +55,9 @@ typedef struct
 
 //This function will do all of the command line argument parsing along with
 //some limited error checking on the argument. It will read the scene into
-//the application and then populate all of the values in the ConfigData 
+//the application and then populate all of the values in the ConfigData
 //struct. After this returns, you will have to set the mpi_rank and mpi_procs
-//values by yourself. This is done to eliminate any dependencies on MPI 
+//values by yourself. This is done to eliminate any dependencies on MPI
 //within the library.
 //
 //Inputs:
@@ -78,13 +78,13 @@ bool initialize(int* argc, char** argv[], ConfigData* configuration);
 void shutdown(ConfigData* configuration);
 
 //This function will actually perform ray tracing on a given pixel.
-//When called, the values for row and column should be within the 
+//When called, the values for row and column should be within the
 //acceptable bounds of the image, that is, 0 <= row < height and
 //0 <= column < width. If these conditions are not met, an error
 //message will be displayed.
 //
 //Inputs:
-//    color - a float array of 3 elements; this does not have to be a 
+//    color - a float array of 3 elements; this does not have to be a
 //        separate array of 3 elements, but this will write to color[0],
 //        color[1], and color[2].
 //    row - the row of the image to render
@@ -102,7 +102,7 @@ void shadePixel(float* color, int row, int column, ConfigData* configuration);
 //    pixels - the float pointer that contains all of the pixel data from
 //        shading the scene.
 //    data - The pointer to the ConfigData struct that contains the
-//        scene information. 
+//        scene information.
 bool savePixels(std::string filename, float* pixels, ConfigData* data);
 
 //This function will generate a file name that is used to save the image.
@@ -114,7 +114,8 @@ bool savePixels(std::string filename, float* pixels, ConfigData* data);
 //Inputs: NONE
 //
 //Outputs:
-//    A C++ string the represents the file name. 
+//    A C++ string the represents the file name.
 std::string generateFileName(ConfigData* data);
+
 
 #endif
