@@ -9,7 +9,6 @@
 void slaveMain(ConfigData* data)
 {
 
-
     //Depending on the partitioning scheme, different things will happen.
     //You should have a different function for each of the required
     //schemes that returns some values that you need to handle.
@@ -19,22 +18,22 @@ void slaveMain(ConfigData* data)
             //The slave will do nothing since this means sequential operation.
             break;
         case PART_MODE_STATIC_STRIPS_HORIZONTAL:
-            slaveStaticStripsHorizontal(data);
+            slaveStaticStripsHorizontal(data, pixels);
             break;
         case PART_MODE_STATIC_STRIPS_VERTICAL:
-            slaveStaticStripsVertical(data);
+            slaveStaticStripsVertical(data, pixels);
             break;
         case PART_MODE_STATIC_BLOCKS:
-            slaveStaticBlocks(data);
+            slaveStaticBlocks(data, pixels);
             break;
         case PART_MODE_STATIC_CYCLES_HORIZONTAL:
-            slaveStaticCyclesHorizontal(data);
+            slaveStaticCyclesHorizontal(data, pixels);
             break;
         case PART_MODE_STATIC_CYCLES_VERTICAL:
-            slaveStaticCyclesVertical(data);
+            slaveStaticCyclesVertical(data, pixels);
             break;
         case PART_MODE_DYNAMIC:
-            slaveDynamic(data);
+            slaveDynamic(data, pixels);
             break;
         default:
             std::cout << "This mode (" << data->partitioningMode;
@@ -43,7 +42,7 @@ void slaveMain(ConfigData* data)
     }
 }
 
-void slaveStaticStripsHorizontal(ConfigData* data){
+void slaveStaticStripsHorizontal(ConfigData* data, float* pixels){
     //Start the computation time timer.
     double computationStart = MPI_Wtime();
 
@@ -79,55 +78,49 @@ void slaveStaticStripsHorizontal(ConfigData* data){
                  calcIndex(data, rowsStart, 0) << std::endl;
 
     //Render the scene.
-    //for( int row = rowsStart; row < rowsEnd; ++row )
-    //{
-        //for( int col = 0; col < colsMax; ++col )
-        //{
+    for( int row = rowsStart; row < rowsEnd; ++row )
+    {
+        for( int col = 0; col < colsMax; ++col )
+        {
 
-            ////Calculate the index into the array.
-            //int baseIndex = calcIndex(data, row, col);
+            //Calculate the index into the array.
+            int baseIndex = calcIndex(data, row, col);
 
-            ////Call the function to shade the pixel.
-            //shadePixel(&(pixels[baseIndex]),row,col,data);
-        //}
+            //Call the function to shade the pixel.
+            shadePixel(&(pixels[baseIndex]),row,col,data);
+        }
 
-    //}
+    }
 
     //Stop the comp. timer
     double computationStop = MPI_Wtime();
     double computationTime = computationStop - computationStart;
 
-    // Consolidate all pixels and comm time(Communication)
-    int slave = 1;
-    int baseIndex = 0;
-    int numToSave = 3*rowsPerProcExtra * data->width;
-    for (slave = 1; slave < rowsRemain; slave++){
-        //MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
-        baseIndex += numToSave;
-    }
-    numToSave = 3*rowsPerProcNom * data->width;
-    for (; slave < data->mpi_procs; slave++){
-        //MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
-        baseIndex += numToSave;
-    }
-}
+    int baseIndex = calcIndex(data, rowsStart, 0);
+    int numToSave = calcIndex(data, rowsToCalc, 0);
+    std::cout << "Slave " << data->mpi_rank << " Sending " << numToSave <<
+                 " Pixesl to index " << baseIndex << std::endl;
 
-void slaveStaticStripsVertical(ConfigData* data){
+    MPI_Send( &(pixels[baseIndex]), numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD);
 
 }
 
-void slaveStaticBlocks(ConfigData* data){
+void slaveStaticStripsVertical(ConfigData* data, float* pixels){
 
 }
 
-void slaveStaticCyclesHorizontal(ConfigData* data){
+void slaveStaticBlocks(ConfigData* data, float* pixels){
 
 }
 
-void slaveStaticCyclesVertical(ConfigData* data){
+void slaveStaticCyclesHorizontal(ConfigData* data, float* pixels){
 
 }
 
-void slaveDynamic(ConfigData* data){
+void slaveStaticCyclesVertical(ConfigData* data, float* pixels){
+
+}
+
+void slaveDynamic(ConfigData* data, float* pixels){
 
 }

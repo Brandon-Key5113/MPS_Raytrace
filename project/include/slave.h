@@ -5,11 +5,11 @@
 
 void slaveMain( ConfigData *data );
 
-void slaveStaticStripsHorizontal(ConfigData* data);
-void slaveStaticStripsVertical(ConfigData* data);
-void slaveStaticBlocks(ConfigData* data);
-void slaveStaticCyclesHorizontal(ConfigData* data);
-void slaveStaticCyclesVertical(ConfigData* data);
-void slaveDynamic(ConfigData* data);
+void slaveStaticStripsHorizontal(ConfigData* data, float* pixels);
+void slaveStaticStripsVertical(ConfigData* data, float* pixels);
+void slaveStaticBlocks(ConfigData* data, float* pixels);
+void slaveStaticCyclesHorizontal(ConfigData* data, float* pixels);
+void slaveStaticCyclesVertical(ConfigData* data, float* pixels);
+void slaveDynamic(ConfigData* data, float* pixels);
 
 #endif

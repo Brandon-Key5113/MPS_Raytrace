@@ -161,27 +161,27 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
 
     int rowsEnd = rowsStart + rowsToCalc;
 
-    std::cout << "Row Per Proc Nominal" << rowsPerProcNom << std::endl;
-    std::cout << "Row Per Proc Extra" << rowsPerProcExtra << std::endl;
-    std::cout << "Remainder" << rowsRemain << std::endl;
+    std::cout << "Row Per Proc Nominal " << rowsPerProcNom << std::endl;
+    std::cout << "Row Per Proc Extra " << rowsPerProcExtra << std::endl;
+    std::cout << "Remainder " << rowsRemain << std::endl;
     std::cout << "Rank " << data->mpi_rank << " Num " << rowsToCalc << " [" <<
                  rowsStart << ", " << rowsEnd << "] Base I " <<
                  calcIndex(data, rowsStart, 0) << std::endl;
 
     //Render the scene.
-    //for( int row = rowsStart; row < rowsEnd; ++row )
-    //{
-        //for( int col = 0; col < colsMax; ++col )
-        //{
+    for( int row = rowsStart; row < rowsEnd; ++row )
+    {
+        for( int col = 0; col < colsMax; ++col )
+        {
 
-            ////Calculate the index into the array.
-            //int baseIndex = calcIndex(data, row, col);
+            //Calculate the index into the array.
+            int baseIndex = calcIndex(data, row, col);
 
-            ////Call the function to shade the pixel.
-            //shadePixel(&(pixels[baseIndex]),row,col,data);
-        //}
+            //Call the function to shade the pixel.
+            shadePixel(&(pixels[baseIndex]),row,col,data);
+        }
 
-    //}
+    }
 
     //Stop the comp. timer
     double computationStop = MPI_Wtime();
@@ -189,15 +189,15 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
 
     // Consolidate all pixels and comm time(Communication)
     int slave = 1;
-    int baseIndex = 0;
-    int numToSave = 3*rowsPerProcExtra * data->width;
+    int baseIndex = calcIndex(data, rowsToCalc, 0);
+    int numToSave = calcIndex(data, rowsPerProcExtra, 0);
     for (slave = 1; slave < rowsRemain; slave++){
-        //MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
         baseIndex += numToSave;
     }
-    numToSave = 3*rowsPerProcNom * data->width;
+    numToSave = calcIndex(data, rowsPerProcNom, 0);
     for (; slave < data->mpi_procs; slave++){
-        //MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
         baseIndex += numToSave;
     }
 
