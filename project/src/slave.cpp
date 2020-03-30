@@ -43,7 +43,8 @@ void slaveMain(ConfigData* data)
 
 void slaveStaticStripsHorizontal(ConfigData* data){
     //Start the computation time timer.
-    double computationStart = MPI_Wtime();
+    float computationStart, computationStop, computationTime;
+    computationStart = MPI_Wtime();
 
     // Vars to improve readability
     int colsMax = data->width;
@@ -91,15 +92,29 @@ void slaveStaticStripsHorizontal(ConfigData* data){
     }
 
     //Stop the comp. timer
-    double computationStop = MPI_Wtime();
-    double computationTime = computationStop - computationStart;
+    computationStop = MPI_Wtime();
+    computationTime = computationStop - computationStart;
 
     int baseIndex = calcIndex(data, rowsStart, 0);
-    int numToSave = calcIndex(data, rowsToCalc, 0);
-    MPI_Send( pixels, numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD);
+    int pixToSave = calcIndex(data, rowsToCalc, 0);
 
-    MPI_Recv( &computationTime, 1, MPI_DOUBLE, 0, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD);
+    int packetSize = pixToSave + 1; // pixel data plus comp time
+    // Make memory for the incoming data.
+    float* packet = new float[pixToSave + 1];
 
+    // format the packet
+    packet[0] = computationTime;
+    memcpy(&(packet[1]), pixels, pixToSave * sizeof(float));
+
+    MPI_Send( packet, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
+
+    //MPI_Send( pixels, numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD);
+
+    //MPI_Send( &computationTime, 1, MPI_FLOAT, 0, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD);
+
+    //Delete the pixel data.
+    delete[] packet;
+    delete[] pixels;
 }
 
 void slaveStaticStripsVertical(ConfigData* data){

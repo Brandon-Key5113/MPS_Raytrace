@@ -14,7 +14,7 @@ void masterMain(ConfigData* data)
     //schemes that returns some values that you need to handle.
 
     //Allocate space for the image on the master.
-    float* pixels = new float[3 * data->width * data->height];
+    float* pixels = new float[(3 * data->width * data->height)];
 
     //Execution time will be defined as how long it takes
     //for the given function to execute based on partitioning
@@ -132,7 +132,8 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
     MPI_Status status;
 
     //Start the computation time timer.
-    double computationStart = MPI_Wtime();
+    float computationStart, computationStop, computationTime, computationTimeTemp;
+    float commStart, commStop, commTime;
 
     // Vars to improve readability
     int colsMax = data->width;
@@ -168,7 +169,7 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
                  rowsStart << ", " << rowsEnd << "] Base I " <<
                  calcIndex(data, rowsStart, 0) << std::endl;
 
-    double computationStart = MPI_Wtime();
+    computationStart = MPI_Wtime();
 
     //Render the scene.
     for( int row = rowsStart; row < rowsEnd; ++row )
@@ -186,33 +187,58 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
     }
 
     //Stop the comp. timer
-    double computationStop = MPI_Wtime();
-    double computationTime = computationStop - computationStart;
-    double computatoinTimeTemp;
+    computationStop = MPI_Wtime();
+    computationTime = computationStop - computationStart;
+    // Start communicaiton timer
+    commStart = MPI_Wtime();
 
     // Consolidate all pixels and comm time(Communication)
     int slave = 1;
     int baseIndex = calcIndex(data, rowsToCalc, 0);
-    int numToSave = calcIndex(data, rowsPerProcExtra, 0);
+    int pixToSave = calcIndex(data, rowsPerProcExtra, 0);
+    int packetSize = pixToSave + 1; // pixel data plus comp time
+    // Make memory for the incoming data.
+    float* packet = new float[pixToSave + 1];
+
     for (slave = 1; slave < rowsRemain; slave++){
-        MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
-        baseIndex += numToSave;
-        MPI_Recv( &computatoinTimeTemp, 1, MPI_DOUBLE, slave, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD, &status);
-        computationTime += computatoinTimeTemp;
+        // read new data
+        MPI_Recv( packet, packetSize, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        // parse the packet
+        // Grab the computation time
+        computationTime += packet[0];
+        // Copy pixels into pixel buffer
+        memcpy(&(pixels[baseIndex]), &packet[1], pixToSave * sizeof(float));
+        baseIndex += pixToSave;
+
+
+        //MPI_Recv( &(pixels[baseIndex]), pixToSave, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        //baseIndex += pixToSave;
+        //MPI_Recv( &computationTimeTemp, 1, MPI_FLOAT, slave, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD, &status);
+        //computationTime += computationTimeTemp;
     }
-    numToSave = calcIndex(data, rowsPerProcNom, 0);
+    pixToSave = calcIndex(data, rowsPerProcNom, 0);
+    packetSize = pixToSave + 1;
     for (; slave < data->mpi_procs; slave++){
-        MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
-        baseIndex += numToSave;
-        MPI_Recv( &computatoinTimeTemp, 1, MPI_DOUBLE, slave, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD, &status);
-        computationTime += computatoinTimeTemp;
+        // read new data
+        MPI_Recv( packet, packetSize, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        // parse the packet
+        // Grab the computation time
+        computationTime += packet[0];
+        // Copy pixels into pixel buffer
+        memcpy(&(pixels[baseIndex]), &packet[1], pixToSave * sizeof(float));
+        baseIndex += pixToSave;
     }
 
-
+    // Stop communicaiton timer
+    commStop = MPI_Wtime();
 
     //After receiving from all processes, the communication time will
     //be obtained.
-    double communicationTime = 0.0;
+    commTime = commStop - commStart;
+
+    masterDisplayCtoC(commTime, computationTime);
+
+    delete[] packet;
 }
 
 void masterStaticStripsVertical(ConfigData* data, float* pixels){
