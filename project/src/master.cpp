@@ -168,6 +168,8 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
                  rowsStart << ", " << rowsEnd << "] Base I " <<
                  calcIndex(data, rowsStart, 0) << std::endl;
 
+    double computationStart = MPI_Wtime();
+
     //Render the scene.
     for( int row = rowsStart; row < rowsEnd; ++row )
     {
@@ -186,6 +188,7 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
     //Stop the comp. timer
     double computationStop = MPI_Wtime();
     double computationTime = computationStop - computationStart;
+    double computatoinTimeTemp;
 
     // Consolidate all pixels and comm time(Communication)
     int slave = 1;
@@ -194,11 +197,15 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
     for (slave = 1; slave < rowsRemain; slave++){
         MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
         baseIndex += numToSave;
+        MPI_Recv( &computatoinTimeTemp, 1, MPI_DOUBLE, slave, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD, &status);
+        computationTime += computatoinTimeTemp;
     }
     numToSave = calcIndex(data, rowsPerProcNom, 0);
     for (; slave < data->mpi_procs; slave++){
         MPI_Recv( &(pixels[baseIndex]), numToSave, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
         baseIndex += numToSave;
+        MPI_Recv( &computatoinTimeTemp, 1, MPI_DOUBLE, slave, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD, &status);
+        computationTime += computatoinTimeTemp;
     }
 
 

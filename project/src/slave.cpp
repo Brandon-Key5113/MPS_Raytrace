@@ -8,7 +8,6 @@
 
 void slaveMain(ConfigData* data)
 {
-
     //Depending on the partitioning scheme, different things will happen.
     //You should have a different function for each of the required
     //schemes that returns some values that you need to handle.
@@ -18,22 +17,22 @@ void slaveMain(ConfigData* data)
             //The slave will do nothing since this means sequential operation.
             break;
         case PART_MODE_STATIC_STRIPS_HORIZONTAL:
-            slaveStaticStripsHorizontal(data, pixels);
+            slaveStaticStripsHorizontal(data);
             break;
         case PART_MODE_STATIC_STRIPS_VERTICAL:
-            slaveStaticStripsVertical(data, pixels);
+            slaveStaticStripsVertical(data);
             break;
         case PART_MODE_STATIC_BLOCKS:
-            slaveStaticBlocks(data, pixels);
+            slaveStaticBlocks(data);
             break;
         case PART_MODE_STATIC_CYCLES_HORIZONTAL:
-            slaveStaticCyclesHorizontal(data, pixels);
+            slaveStaticCyclesHorizontal(data);
             break;
         case PART_MODE_STATIC_CYCLES_VERTICAL:
-            slaveStaticCyclesVertical(data, pixels);
+            slaveStaticCyclesVertical(data);
             break;
         case PART_MODE_DYNAMIC:
-            slaveDynamic(data, pixels);
+            slaveDynamic(data);
             break;
         default:
             std::cout << "This mode (" << data->partitioningMode;
@@ -42,7 +41,7 @@ void slaveMain(ConfigData* data)
     }
 }
 
-void slaveStaticStripsHorizontal(ConfigData* data, float* pixels){
+void slaveStaticStripsHorizontal(ConfigData* data){
     //Start the computation time timer.
     double computationStart = MPI_Wtime();
 
@@ -73,12 +72,11 @@ void slaveStaticStripsHorizontal(ConfigData* data, float* pixels){
 
     int rowsEnd = rowsStart + rowsToCalc;
 
-    std::cout << "Rank " << data->mpi_rank << " Num " << rowsToCalc << " [" <<
-                 rowsStart << ", " << rowsEnd << "] Base I " <<
-                 calcIndex(data, rowsStart, 0) << std::endl;
+    //Allocate space for the image on the master.
+    float* pixels = new float[ calcIndex(data, rowsToCalc + 1, 0)];
 
     //Render the scene.
-    for( int row = rowsStart; row < rowsEnd; ++row )
+    for( int row = 0; row < rowsToCalc; ++row )
     {
         for( int col = 0; col < colsMax; ++col )
         {
@@ -87,7 +85,7 @@ void slaveStaticStripsHorizontal(ConfigData* data, float* pixels){
             int baseIndex = calcIndex(data, row, col);
 
             //Call the function to shade the pixel.
-            shadePixel(&(pixels[baseIndex]),row,col,data);
+            shadePixel(&(pixels[baseIndex]),row + rowsStart,col,data);
         }
 
     }
@@ -98,29 +96,28 @@ void slaveStaticStripsHorizontal(ConfigData* data, float* pixels){
 
     int baseIndex = calcIndex(data, rowsStart, 0);
     int numToSave = calcIndex(data, rowsToCalc, 0);
-    std::cout << "Slave " << data->mpi_rank << " Sending " << numToSave <<
-                 " Pixesl to index " << baseIndex << std::endl;
+    MPI_Send( pixels, numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD);
 
-    MPI_Send( &(pixels[baseIndex]), numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD);
-
-}
-
-void slaveStaticStripsVertical(ConfigData* data, float* pixels){
+    MPI_Recv( &computationTime, 1, MPI_DOUBLE, 0, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD);
 
 }
 
-void slaveStaticBlocks(ConfigData* data, float* pixels){
+void slaveStaticStripsVertical(ConfigData* data){
 
 }
 
-void slaveStaticCyclesHorizontal(ConfigData* data, float* pixels){
+void slaveStaticBlocks(ConfigData* data){
 
 }
 
-void slaveStaticCyclesVertical(ConfigData* data, float* pixels){
+void slaveStaticCyclesHorizontal(ConfigData* data){
 
 }
 
-void slaveDynamic(ConfigData* data, float* pixels){
+void slaveStaticCyclesVertical(ConfigData* data){
+
+}
+
+void slaveDynamic(ConfigData* data){
 
 }
