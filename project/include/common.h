@@ -17,5 +17,17 @@ typedef enum{
 //
 //Outputs: index
 int calcIndex(ConfigData* data,int row,int col);
+//Column major index calc
+int calcIndexI(ConfigData* data,int row,int col);
+
+//Math function to check if a number is a perfect square
+//
+//Inputs:
+//    n - Number to check
+//
+//Outputs:
+//    0 - Number is not a perfect square
+//    other - square root of the number
+int isPerfectSquare(int n);
 
 #endif

@@ -108,17 +108,82 @@ void slaveStaticStripsHorizontal(ConfigData* data){
 
     MPI_Send( packet, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
 
-    //MPI_Send( pixels, numToSave, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD);
-
-    //MPI_Send( &computationTime, 1, MPI_FLOAT, 0, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD);
-
     //Delete the pixel data.
     delete[] packet;
     delete[] pixels;
 }
 
 void slaveStaticStripsVertical(ConfigData* data){
+    //Start the computation time timer.
+    float computationStart, computationStop, computationTime;
+    computationStart = MPI_Wtime();
 
+    // Vars to improve readability
+    int colsMax = data->width;
+    int rowsMax = data->height;
+    // Number of rows to calcualte
+    // Divide rows evenenly amoung processors
+    int colsPerProcNom = colsMax/data->mpi_procs;
+    // Some slaves needs to do addtitional work for the remainder
+    int colsPerProcExtra = colsPerProcNom + 1;
+    // Int maths leaves a remainder. The remainder will later be distributed to
+    // the first n slaves.
+    int colsRemain = colsMax%data->mpi_procs;
+
+    // How many rows each slaves calcs
+    int colsToCalc;
+    // Where in the array this slave starts
+    int colsStart;
+    if (data->mpi_rank < colsRemain){
+        colsToCalc = colsPerProcExtra;
+        colsStart = (colsPerProcExtra* data->mpi_rank);
+    } else {
+        colsToCalc = colsPerProcNom;
+        colsStart = (colsPerProcExtra* colsRemain) +
+                    ((data->mpi_rank - colsRemain) * colsPerProcNom);
+    }
+
+    int colsEnd = colsStart + colsToCalc;
+
+    //Allocate space for the image on the master.
+    float* pixels = new float[ calcIndexI(data, 0, colsToCalc + 1)];
+
+    //Render the scene.
+    // Swap row and col itteration.
+    for( int row = 0; row < rowsMax; ++row )
+    {
+        for( int col = 0; col < colsToCalc; ++col )
+        {
+
+            //Calculate the index into the array.
+            int baseIndexI = calcIndexI(data, row, col);
+
+            //Call the function to shade the pixel.
+            shadePixel(&(pixels[baseIndexI]),row,col + colsStart,data);
+        }
+
+    }
+
+    //Stop the comp. timer
+    computationStop = MPI_Wtime();
+    computationTime = computationStop - computationStart;
+
+    int baseIndex = calcIndexI(data, 0, colsStart);
+    int pixToSave = calcIndexI(data, 0, colsToCalc);
+
+    int packetSize = pixToSave + 1; // pixel data plus comp time
+    // Make memory for the incoming data.
+    float* packet = new float[pixToSave + 1];
+
+    // format the packet
+    packet[0] = computationTime;
+    memcpy(&(packet[1]), pixels, pixToSave * sizeof(float));
+
+    MPI_Send( packet, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
+
+    //Delete the pixel data.
+    delete[] packet;
+    delete[] pixels;
 }
 
 void slaveStaticBlocks(ConfigData* data){
@@ -126,7 +191,50 @@ void slaveStaticBlocks(ConfigData* data){
 }
 
 void slaveStaticCyclesHorizontal(ConfigData* data){
+    double computationStart, computationStop, computationTime;
 
+    // Vars to improve readability
+    int colsMax = data->width;
+    int rowsMax = data->height;
+    // Number of rows to calcualte
+    // Divide rows evenenly amoung processors
+    int rowsPerProc = rowsMax/data->mpi_procs + 2;
+    int rowsStart = data->mpi_rank * data->cycleSize;
+
+
+    int numPix = calcIndex(data, rowsPerProc, 0);
+    int packetSize = numPix + 1;
+    float* pixels = new float[packetSize];
+
+    computationStart = MPI_Wtime();
+
+    //Render the scene.
+    int rowMap = 0;
+    for( int row = 0; row < rowsMax; ++row )
+    {
+        if ((row/data->cycleSize) % data->mpi_procs  == data->mpi_rank){
+
+            for( int col = 0; col < colsMax; ++col )
+            {
+
+                //Calculate the index into the array.
+                int baseIndex = calcIndex(data, rowMap, col);
+
+                //Call the function to shade the pixel.
+                shadePixel(&(pixels[baseIndex]),row,col,data);
+            }
+            rowMap++;
+        }
+    }
+
+    computationStop = MPI_Wtime();
+    computationTime = computationStop - computationStart;
+    // Put computation time at the end of the pixel array
+    pixels[numPix] = computationTime;
+    // Ship it to master
+    MPI_Send( pixels, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
+    // Free memory
+    delete[] pixels;
 }
 
 void slaveStaticCyclesVertical(ConfigData* data){

@@ -132,8 +132,8 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
     MPI_Status status;
 
     //Start the computation time timer.
-    float computationStart, computationStop, computationTime, computationTimeTemp;
-    float commStart, commStop, commTime;
+    double computationStart, computationStop, computationTime, computationTimeTemp;
+    double commStart, commStop, commTime;
 
     // Vars to improve readability
     int colsMax = data->width;
@@ -209,12 +209,6 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
         // Copy pixels into pixel buffer
         memcpy(&(pixels[baseIndex]), &packet[1], pixToSave * sizeof(float));
         baseIndex += pixToSave;
-
-
-        //MPI_Recv( &(pixels[baseIndex]), pixToSave, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
-        //baseIndex += pixToSave;
-        //MPI_Recv( &computationTimeTemp, 1, MPI_FLOAT, slave, MPI_MESSAGE_TAG_COMP_T, MPI_COMM_WORLD, &status);
-        //computationTime += computationTimeTemp;
     }
     pixToSave = calcIndex(data, rowsPerProcNom, 0);
     packetSize = pixToSave + 1;
@@ -242,7 +236,131 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
 }
 
 void masterStaticStripsVertical(ConfigData* data, float* pixels){
+    MPI_Status status;
 
+    //Start the computation time timer.
+    double computationStart, computationStop, computationTime, computationTimeTemp;
+    double commStart, commStop, commTime;
+
+    // Vars to improve readability
+    int colsMax = data->width;
+    int rowsMax = data->height;
+    // Number of rows to calcualte
+    // Divide rows evenenly amoung processors
+    int colsPerProcNom = colsMax/data->mpi_procs;
+    // Some slaves needs to do addtitional work for the remainder
+    int colsPerProcExtra = colsPerProcNom + 1;
+    // Int maths leaves a remainder. The remainder will later be distributed to
+    // the first n slaves.
+    int colsRemain = colsMax%data->mpi_procs;
+
+    // How many rows each slaves calcs
+    int colsToCalc;
+    // Where in the array this slave starts
+    int colsStart;
+    if (data->mpi_rank < colsRemain){
+        colsToCalc = colsPerProcExtra;
+        colsStart = (colsPerProcExtra* data->mpi_rank);
+    } else {
+        colsToCalc = colsPerProcNom;
+        colsStart = (colsPerProcExtra* colsRemain) +
+                    ((data->mpi_rank - colsRemain) * colsPerProcNom);
+    }
+
+    int colsEnd = colsStart + colsToCalc;
+
+    std::cout << "Row Per Proc Nominal " << colsPerProcNom << std::endl;
+    std::cout << "Row Per Proc Extra " << colsPerProcExtra << std::endl;
+    std::cout << "Remainder " << colsRemain << std::endl;
+    std::cout << "Rank " << data->mpi_rank << " Num " << colsToCalc << " [" <<
+                 colsStart << ", " << colsEnd << "] Base I " <<
+                 calcIndex(data, colsStart, 0) << std::endl;
+
+    computationStart = MPI_Wtime();
+
+    float* pixels2 = new float[(3 * data->width * data->height)];
+
+    //Render the scene.
+    // Swap row and col itteration.
+    for( int row = 0; row < rowsMax; ++row )
+    {
+        for( int col = colsStart; col < colsEnd; ++col )
+        {
+
+            //Calculate the index into the array.
+            int baseIndexI = calcIndexI(data, row, col);
+
+            //Call the function to shade the pixel.
+            shadePixel(&(pixels2[baseIndexI]),row,col,data);
+        }
+
+    }
+
+    //Stop the comp. timer
+    computationStop = MPI_Wtime();
+    computationTime = computationStop - computationStart;
+    // Start communicaiton timer
+    commStart = MPI_Wtime();
+
+    // Consolidate all pixels and comm time(Communication)
+    int slave = 1;
+    int baseIndex = calcIndexI(data, 0, colsToCalc);
+    int pixToSave = calcIndexI(data, 0, colsPerProcExtra);
+    int packetSize = pixToSave + 1; // pixel data plus comp time
+    // Make memory for the incoming data.
+    float* packet = new float[pixToSave + 1];
+
+    for (slave = 1; slave < colsRemain; slave++){
+        // read new data
+        MPI_Recv( packet, packetSize, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        // parse the packet
+        // Grab the computation time
+        computationTime += packet[0];
+        // Copy pixels into pixel buffer
+        memcpy(&(pixels2[baseIndex]), &packet[1], pixToSave * sizeof(float));
+        baseIndex += pixToSave;
+    }
+    pixToSave = calcIndex(data, colsPerProcNom, 0);
+    packetSize = pixToSave + 1;
+    for (; slave < data->mpi_procs; slave++){
+        // read new data
+        MPI_Recv( packet, packetSize, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        // parse the packet
+        // Grab the computation time
+        computationTime += packet[0];
+        // Copy pixels into pixel buffer
+        memcpy(&(pixels2[baseIndex]), &packet[1], pixToSave * sizeof(float));
+        baseIndex += pixToSave;
+    }
+
+    // Flop the pixels
+    for( int i = 0; i < data->height; ++i )
+    {
+        for( int j = 0; j < data->width; ++j )
+        {
+            int row = i;
+            int column = j;
+
+            //Calculate the index into the array.
+            int baseIndex = calcIndex(data, row, column);
+            int baseIndexI = calcIndexI(data, row, column);
+
+            pixels[baseIndex] = pixels2[baseIndexI];
+            pixels[baseIndex+1] = pixels2[baseIndexI+1];
+            pixels[baseIndex+2] = pixels2[baseIndexI+2];
+        }
+    }
+
+    // Stop communicaiton timer
+    commStop = MPI_Wtime();
+
+    //After receiving from all processes, the communication time will
+    //be obtained.
+    commTime = commStop - commStart;
+
+    masterDisplayCtoC(commTime, computationTime);
+
+    delete[] packet;
 }
 
 void masterStaticBlocks(ConfigData* data, float* pixels){
@@ -250,6 +368,90 @@ void masterStaticBlocks(ConfigData* data, float* pixels){
 }
 
 void masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
+    MPI_Status status;
+
+    //Start the computation time timer.
+    double computationStart, computationStop, computationTime, computationTimeTemp;
+    double commStart, commStop, commTime;
+
+    // Vars to improve readability
+    int colsMax = data->width;
+    int rowsMax = data->height;
+    int rowsPerProc = rowsMax/data->mpi_procs + 2;
+    int rowsStart = data->mpi_rank * data->cycleSize;
+
+    int numPix = calcIndex(data, rowsPerProc, 0);
+    int packetSize = numPix + 1;
+    float* pix = new float[packetSize];
+
+
+    computationStart = MPI_Wtime();
+
+    //Render the scene.
+    int rowMap = 0;
+    for( int row = 0; row < rowsMax; ++row )
+    {
+        if ((row/data->cycleSize) % data->mpi_procs  == data->mpi_rank){
+            for( int col = 0; col < colsMax; ++col )
+            {
+                //Calculate the index into the array.
+                int baseIndex = calcIndex(data, row/*rowMap*/, col);
+
+                //Call the function to shade the pixel.
+                shadePixel(&(pixels[baseIndex]),row,col,data);
+            }
+            rowMap++;
+        }
+    }
+
+    //Stop the comp. timer
+    computationStop = MPI_Wtime();
+    computationTime = computationStop - computationStart;
+    // Start communicaiton timer
+    commStart = MPI_Wtime();
+
+    // row in the pixel array
+    int pixelRow = 0;
+    // row in the packed packet
+    int mappedRow = 0;
+
+    for (int slave = 1; slave < data->mpi_procs ; slave++)
+    //int slave = 1;
+    {
+        pixelRow = slave*data->cycleSize;
+        mappedRow = 0;
+        //Recieve data
+        MPI_Recv( pix, packetSize, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD, &status);
+
+        // Fetch computation time at the end of the pixel array
+        computationTime += pix[numPix];
+
+        // Unpack incoming data
+        // go until the end of the
+        while(pixelRow < rowsMax){
+            for(int i = 0; i < data->cycleSize && pixelRow < rowsMax; i++){
+                //std::cout << "Row In Pixels " << pixelRow << " Row in Packet " << mappedRow << std::endl;
+                // memcpy row from incoming data to the pixel array
+                memcpy(&(pixels[calcIndex(data, pixelRow, 0)]), &(pix[calcIndex(data, mappedRow, 0)]), sizeof(float)*3*data->width );
+                mappedRow++;
+                pixelRow++;
+            }
+            pixelRow+= (data->mpi_procs-1)*data->cycleSize;
+
+        }
+    }
+
+
+    // Stop communicaiton timer
+    commStop = MPI_Wtime();
+
+    //After receiving from all processes, the communication time will
+    //be obtained.
+    commTime = commStop - commStart;
+
+    masterDisplayCtoC(commTime, computationTime);
+
+    delete[] pix;
 
 }
 
