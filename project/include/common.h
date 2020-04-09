@@ -8,6 +8,35 @@ typedef enum{
     MPI_MESSAGE_TAG_COMP_T
 } MpiMesssageTag;
 
+
+typedef struct BlockInfo{
+    int sqrtProc;
+    int colsMax;
+    int rowsMax;
+
+    int slave;
+
+    int rowsNorm;
+    int rowsExtra;
+    int rowsRemain;
+    int rowsRemainStart;
+    int colsNorm;
+    int colsExtra;
+    int colsRemain;
+    int colsRemainStart;
+
+    int blockRow;
+    int blockCol;
+
+    int rowStart, rowEnd, rowsToCalc;
+    int colStart, colEnd, colsToCalc;
+
+    BlockInfo(ConfigData* data);
+
+    void UpdateData(int slave);
+
+} BlockInfo;
+
 //This function is a helper function to calculate an index into a pixel array
 //
 //Inputs:
@@ -29,5 +58,6 @@ int calcIndexI(ConfigData* data,int row,int col);
 //    0 - Number is not a perfect square
 //    other - square root of the number
 int isPerfectSquare(int n);
+
 
 #endif

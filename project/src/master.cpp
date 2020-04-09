@@ -372,64 +372,17 @@ void masterStaticStripsVertical(ConfigData* data, float* pixels){
 }
 
 void masterStaticBlocks(ConfigData* data, float* pixels){
-    // Check if there number of procs is a perfect square
-    int sqrtProc = isPerfectSquare(data->mpi_procs);
-    if (sqrtProc == 0){
+    BlockInfo blockInfo = BlockInfo(data);
+
+    if (blockInfo.sqrtProc == 0){
         std::cout << "Error: " << data->mpi_procs << " is not a perfect square to break into blocks" << std::endl;
         return;
     }
 
-    int colsMax = data->width;
-    int rowsMax = data->height;
-
-
-    int slave = data->mpi_rank;
-
-    int rowsNorm = rowsMax/sqrtProc;
-    int rowsExtra = rowsNorm+1;
-    int rowsRemain = rowsMax%sqrtProc;
-    int rowsRemainStart = rowsMax - rowsRemain;
-    int colsNorm = colsMax/sqrtProc;
-    int colsExtra = colsNorm+1;
-    int colsRemain = colsMax%sqrtProc;
-    int colsRemainStart = colsMax - colsRemain;
-
-    int blockRow = slave/sqrtProc;
-    int blockCol = slave%sqrtProc;
-
-    int rowStart, rowEnd, rowsToCalc;
-    int colStart, colEnd, colsToCalc;
-
-    if (blockRow >= rowsRemainStart){
-        rowsToCalc = rowsExtra;
-        // Accumulate the normal sized blocks and then the additional
-        // blocks that are larger
-        rowStart = rowsRemainStart*rowsNorm + (blockRow - rowsRemainStart)*rowsExtra;
-    } else {
-        rowsToCalc = rowsNorm;
-        rowStart = blockRow*rowsNorm;
-    }
-    rowEnd = rowStart+rowsToCalc;
-
-    if (blockRow >= colsRemainStart){
-        colsToCalc = colsExtra;
-        // Accumulate the normal sized blocks and then the additional
-        // blocks that are larger
-        colStart = colsRemainStart*colsNorm + (blockCol - colsRemainStart)*colsExtra;
-    } else {
-        colsToCalc = colsNorm;
-        colStart = blockCol*colsNorm;
-    }
-    colEnd = colStart+colsToCalc;
-
-    //printf("Slave: %d (%d,%d) Start (%d, %d) Calc (%d, %d)\r\n",
-    //       slave, blockCol, blockRow, colStart, rowStart, colsToCalc, rowsToCalc);
-
-
     //Render the scene.
-    for( int row = rowStart; row < rowEnd; ++row )
+    for( int row = blockInfo.rowStart; row < blockInfo.rowEnd; ++row )
     {
-        for( int col = colStart; col < colEnd; ++col )
+        for( int col = blockInfo.colStart; col < blockInfo.colEnd; ++col )
         {
 
             //Calculate the index into the array.
