@@ -187,7 +187,46 @@ void slaveStaticStripsVertical(ConfigData* data){
 }
 
 void slaveStaticBlocks(ConfigData* data){
+    //Start the computation time timer.
+    float computationStart, computationStop, computationTime;
+    computationStart = MPI_Wtime();
 
+    BlockInfo blockInfo = BlockInfo(data);
+
+    if (blockInfo.sqrtProc == 0){
+        //std::cout << "Error: " << data->mpi_procs << " is not a perfect square to break into blocks" << std::endl;
+        return;
+    }
+
+    int packetSize = blockInfo.GetPacketSize(data);
+    float* pixels = new float[packetSize];
+
+    //Render the scene.
+    for( int row = 0; row < blockInfo.rowsToCalc; ++row )
+    {
+        for( int col = 0; col < blockInfo.colsToCalc; ++col )
+        {
+
+            //Calculate the index into the array.
+            int baseIndex = blockInfo.GetIndex(row, col);
+
+            //Call the function to shade the pixel.
+            shadePixel(&(pixels[baseIndex]),blockInfo.rowStart+row,blockInfo.colStart +  col,data);
+        }
+
+    }
+
+    //Stop the comp. timer
+    computationStop = MPI_Wtime();
+    computationTime = computationStop - computationStart;
+
+    // Add computation time to the end of the packet
+    pixels[packetSize-1] = computationTime;
+
+    // send
+    MPI_Send( pixels, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
+
+    delete[] pixels;
 }
 
 void slaveStaticCyclesHorizontal(ConfigData* data){

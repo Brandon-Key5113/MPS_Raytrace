@@ -1,10 +1,10 @@
 #include "common.h"
 
-int calcIndex(ConfigData* data,int row,int col){
+int calcIndex(const ConfigData* data,int row,int col){
     return 3 * ( row * data->width + col );
 }
 
-int calcIndexI(ConfigData* data,int row,int col){
+int calcIndexI(const ConfigData* data,int row,int col){
     return 3 * ( col * data->height + row );
 }
 
@@ -23,7 +23,7 @@ int isPerfectSquare(int n)
     return 0;
 }
 
-BlockInfo::BlockInfo(ConfigData* data){
+BlockInfo::BlockInfo(const ConfigData* data){
     sqrtProc = isPerfectSquare(data->mpi_procs);
     if (sqrtProc == 0){
         return;
@@ -74,4 +74,16 @@ void BlockInfo::UpdateData(int slave){
         colStart = blockCol*colsNorm;
     }
     colEnd = colStart+colsToCalc;
+}
+
+int BlockInfo::GetNumPix(const ConfigData* data){
+    return 3*(rowsToCalc+1)*colsToCalc;
+}
+
+int BlockInfo::GetPacketSize(const ConfigData* data){
+    return GetNumPix(data) + 1;
+}
+
+int BlockInfo::GetIndex(int row, int col){
+    return 3 * ( row * colsToCalc + col );
 }

@@ -20,6 +20,7 @@ void masterMain(ConfigData* data)
     //for the given function to execute based on partitioning
     //type.
     double renderTime = 0.0, startTime, stopTime, slaveRenderTime = 0.0;
+    double commTime;
 
 	//Add the required partitioning methods here in the case statement.
 	//You do not need to handle all cases; the default will catch any
@@ -29,58 +30,61 @@ void masterMain(ConfigData* data)
 	//called.
 	//It is suggested that you use the same parameters to your functions as shown
 	//in the sequential example below.
+    startTime = MPI_Wtime();
     switch (data->partitioningMode)
     {
         case PART_MODE_NONE:
             //Call the function that will handle this.
-            startTime = MPI_Wtime();
-            masterSequential(data, pixels);
-            stopTime = MPI_Wtime();
+            slaveRenderTime = masterSequential(data, pixels);
             break;
         case PART_MODE_STATIC_STRIPS_HORIZONTAL:
-            startTime = MPI_Wtime();
-            masterStaticStripsHorizontal(data, pixels);
-            stopTime = MPI_Wtime();
+            slaveRenderTime = masterStaticStripsHorizontal(data, pixels);
             break;
         case PART_MODE_STATIC_STRIPS_VERTICAL:
-            startTime = MPI_Wtime();
-            masterStaticStripsVertical(data, pixels);
-            stopTime = MPI_Wtime();
+            slaveRenderTime = masterStaticStripsVertical(data, pixels);
             break;
         case PART_MODE_STATIC_BLOCKS:
-            startTime = MPI_Wtime();
-            masterStaticBlocks(data, pixels);
-            stopTime = MPI_Wtime();
+            slaveRenderTime = masterStaticBlocks(data, pixels);
             break;
         case PART_MODE_STATIC_CYCLES_HORIZONTAL:
-            startTime = MPI_Wtime();
-            masterStaticCyclesHorizontal(data, pixels);
-            stopTime = MPI_Wtime();
+            slaveRenderTime = masterStaticCyclesHorizontal(data, pixels);
             break;
         case PART_MODE_STATIC_CYCLES_VERTICAL:
-            startTime = MPI_Wtime();
-            masterStaticCyclesVertical(data, pixels);
-            stopTime = MPI_Wtime();
+            slaveRenderTime = masterStaticCyclesVertical(data, pixels);
             break;
         case PART_MODE_DYNAMIC:
-            startTime = MPI_Wtime();
-            masterDynamic(data, pixels);
-            stopTime = MPI_Wtime();
+            slaveRenderTime = masterDynamic(data, pixels);
             break;
         default:
             std::cout << "This mode (" << data->partitioningMode;
             std::cout << ") is not currently implemented." << std::endl;
             break;
     }
+    stopTime = MPI_Wtime();
 
     renderTime = stopTime - startTime;
+    commTime = renderTime - slaveRenderTime;
     std::cout << "Execution Time: " << renderTime << " seconds" << std::endl << std::endl;
+
+    //Print the times and the c-to-c ratio
+	//This section of printing, IN THIS ORDER, needs to be included in all of the
+	//functions that you write at the end of the function.
+    std::cout << "Total Computation Time: " << slaveRenderTime << " seconds" << std::endl;
+    std::cout << "Total Communication Time: " << commTime << " seconds" << std::endl;
+    double c2cRatio = commTime / slaveRenderTime;
+    std::cout << "C-to-C Ratio: " << c2cRatio << std::endl;
+
+    // Print out data in a format for the spreadsheet. *** to be able to regex match it
+    printf("***%d\t%f\t\t%f\n", data->mpi_procs, renderTime, c2cRatio);
+
 
     //After this gets done, save the image.
     std::cout << "Image will be save to: ";
     std::string file = generateFileName(data);
     std::cout << file << std::endl;
     savePixels(file, pixels, data);
+
+    printf("--------------------------------------------------------------------------------\n");
 
     //Delete the pixel data.
     delete[] pixels;
@@ -96,7 +100,7 @@ void masterDisplayCtoC(double commTime, double compTime){
     std::cout << "C-to-C Ratio: " << c2cRatio << std::endl;
 }
 
-void masterSequential(ConfigData* data, float* pixels)
+double masterSequential(ConfigData* data, float* pixels)
 {
     //Start the computation time timer.
     double computationStart = MPI_Wtime();
@@ -121,19 +125,14 @@ void masterSequential(ConfigData* data, float* pixels)
     double computationStop = MPI_Wtime();
     double computationTime = computationStop - computationStart;
 
-    //After receiving from all processes, the communication time will
-    //be obtained.
-    double communicationTime = 0.0;
-
-    masterDisplayCtoC(communicationTime, computationTime);
+    return computationTime;
 }
 
-void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
+double masterStaticStripsHorizontal(ConfigData* data, float* pixels){
     MPI_Status status;
 
     //Start the computation time timer.
     double computationStart, computationStop, computationTime, computationTimeTemp;
-    double commStart, commStop, commTime;
 
     // Vars to improve readability
     int colsMax = data->width;
@@ -162,12 +161,12 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
 
     int rowsEnd = rowsStart + rowsToCalc;
 
-    std::cout << "Row Per Proc Nominal " << rowsPerProcNom << std::endl;
-    std::cout << "Row Per Proc Extra " << rowsPerProcExtra << std::endl;
-    std::cout << "Remainder " << rowsRemain << std::endl;
-    std::cout << "Rank " << data->mpi_rank << " Num " << rowsToCalc << " [" <<
-                 rowsStart << ", " << rowsEnd << "] Base I " <<
-                 calcIndex(data, rowsStart, 0) << std::endl;
+    //std::cout << "Row Per Proc Nominal " << rowsPerProcNom << std::endl;
+    //std::cout << "Row Per Proc Extra " << rowsPerProcExtra << std::endl;
+    //std::cout << "Remainder " << rowsRemain << std::endl;
+    //std::cout << "Rank " << data->mpi_rank << " Num " << rowsToCalc << " [" <<
+    //             rowsStart << ", " << rowsEnd << "] Base I " <<
+    //             calcIndex(data, rowsStart, 0) << std::endl;
 
     computationStart = MPI_Wtime();
 
@@ -189,8 +188,6 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
     //Stop the comp. timer
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
-    // Start communicaiton timer
-    commStart = MPI_Wtime();
 
     // Consolidate all pixels and comm time(Communication)
     int slave = 1;
@@ -227,24 +224,16 @@ void masterStaticStripsHorizontal(ConfigData* data, float* pixels){
         baseIndex += pixToSave;
     }
 
-    // Stop communicaiton timer
-    commStop = MPI_Wtime();
-
-    //After receiving from all processes, the communication time will
-    //be obtained.
-    commTime = commStop - commStart;
-
-    masterDisplayCtoC(commTime, computationTime);
-
     delete[] packet;
+
+    return computationTime;
 }
 
-void masterStaticStripsVertical(ConfigData* data, float* pixels){
+double masterStaticStripsVertical(ConfigData* data, float* pixels){
     MPI_Status status;
 
     //Start the computation time timer.
     double computationStart, computationStop, computationTime, computationTimeTemp;
-    double commStart, commStop, commTime;
 
     // Vars to improve readability
     int colsMax = data->width;
@@ -273,12 +262,12 @@ void masterStaticStripsVertical(ConfigData* data, float* pixels){
 
     int colsEnd = colsStart + colsToCalc;
 
-    std::cout << "Row Per Proc Nominal " << colsPerProcNom << std::endl;
-    std::cout << "Row Per Proc Extra " << colsPerProcExtra << std::endl;
-    std::cout << "Remainder " << colsRemain << std::endl;
-    std::cout << "Rank " << data->mpi_rank << " Num " << colsToCalc << " [" <<
-                 colsStart << ", " << colsEnd << "] Base I " <<
-                 calcIndex(data, colsStart, 0) << std::endl;
+    //std::cout << "Row Per Proc Nominal " << colsPerProcNom << std::endl;
+    //std::cout << "Row Per Proc Extra " << colsPerProcExtra << std::endl;
+    //std::cout << "Remainder " << colsRemain << std::endl;
+    //std::cout << "Rank " << data->mpi_rank << " Num " << colsToCalc << " [" <<
+    //             colsStart << ", " << colsEnd << "] Base I " <<
+    //             calcIndex(data, colsStart, 0) << std::endl;
 
     computationStart = MPI_Wtime();
 
@@ -303,8 +292,6 @@ void masterStaticStripsVertical(ConfigData* data, float* pixels){
     //Stop the comp. timer
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
-    // Start communicaiton timer
-    commStart = MPI_Wtime();
 
     // Consolidate all pixels and comm time(Communication)
     int slave = 1;
@@ -359,26 +346,27 @@ void masterStaticStripsVertical(ConfigData* data, float* pixels){
         }
     }
 
-    // Stop communicaiton timer
-    commStop = MPI_Wtime();
-
-    //After receiving from all processes, the communication time will
-    //be obtained.
-    commTime = commStop - commStart;
-
-    masterDisplayCtoC(commTime, computationTime);
-
     delete[] packet;
+
+    return computationTime;
 }
 
-void masterStaticBlocks(ConfigData* data, float* pixels){
+double masterStaticBlocks(ConfigData* data, float* pixels){
+    MPI_Status status;
+    //Start the computation time timer.
+    double computationStart, computationStop, computationTime, computationTimeTemp;
+
+    computationStart = MPI_Wtime();
+
     BlockInfo blockInfo = BlockInfo(data);
 
     if (blockInfo.sqrtProc == 0){
         std::cout << "Error: " << data->mpi_procs << " is not a perfect square to break into blocks" << std::endl;
-        return;
+        return 0.0;
     }
 
+    //for (int slave = 0; slave < data->mpi_procs; slave++){
+    //blockInfo.UpdateData(slave);
     //Render the scene.
     for( int row = blockInfo.rowStart; row < blockInfo.rowEnd; ++row )
     {
@@ -393,16 +381,66 @@ void masterStaticBlocks(ConfigData* data, float* pixels){
         }
 
     }
+    //}
+
+    //Stop the comp. timer
+    computationStop = MPI_Wtime();
+    computationTime = computationStop - computationStart;
+
+    // Get the block info for the last slave
+    // This will have the largest block size, so use it to alloc memory
+    blockInfo.UpdateData(data->mpi_procs - 1);
+    int packetSize = blockInfo.GetPacketSize(data);
+    float* packet = new float[packetSize];
+
+    int packetIndex;
+    int pixelIndex;
+    int pixToCopy;
+
+    for (int slave = 1; slave < data->mpi_procs; slave++){
+        blockInfo.UpdateData(slave);
+        packetSize = blockInfo.GetPacketSize(data);
+
+        // read new data
+        MPI_Recv( packet, packetSize, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
+        // parse the packet
+        // Grab the computation time
+        if (packet[packetSize-1] > computationTime){
+            computationTime = packet[packetSize-1];
+        }
+
+        // Copy packet data into pixel array
+        //if(slave ==3)
+        {
 
 
+        for (int row = 0; row < blockInfo.rowsToCalc; row++){
+            for (int col = 0; col < blockInfo.colsToCalc; col++){
+                // Index into pixel array accounts for the offsets
+                pixelIndex = calcIndex(data, blockInfo.rowStart + row, blockInfo.colStart + col);
+                // Packet is zero indexed
+                packetIndex = blockInfo.GetIndex(row, col);
+
+                pixels[pixelIndex] = packet[packetIndex];
+                pixels[pixelIndex+1] = packet[packetIndex+1];
+                pixels[pixelIndex+2] = packet[packetIndex+2];
+            }
+
+        }
+        }
+
+    }
+
+    delete[] packet;
+
+    return computationTime;
 }
 
-void masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
+double masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
     MPI_Status status;
 
     //Start the computation time timer.
     double computationStart, computationStop, computationTime, computationTimeTemp;
-    double commStart, commStop, commTime;
 
     // Vars to improve readability
     int colsMax = data->width;
@@ -437,8 +475,6 @@ void masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
     //Stop the comp. timer
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
-    // Start communicaiton timer
-    commStart = MPI_Wtime();
 
     // row in the pixel array
     int pixelRow = 0;
@@ -473,24 +509,16 @@ void masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
         }
     }
 
-
-    // Stop communicaiton timer
-    commStop = MPI_Wtime();
-
-    //After receiving from all processes, the communication time will
-    //be obtained.
-    commTime = commStop - commStart;
-
-    masterDisplayCtoC(commTime, computationTime);
-
     delete[] pix;
 
+    return computationTime;
 }
 
-void masterStaticCyclesVertical(ConfigData* data, float* pixels){
+double masterStaticCyclesVertical(ConfigData* data, float* pixels){
 
+    return 0.0;
 }
 
-void masterDynamic(ConfigData* data, float* pixels){
-
+double masterDynamic(ConfigData* data, float* pixels){
+    return 0.0;
 }

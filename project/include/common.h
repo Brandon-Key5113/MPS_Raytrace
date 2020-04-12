@@ -10,7 +10,10 @@ typedef enum{
 
 
 typedef struct BlockInfo{
+    // Square root of the number of procs
+    // How many blocks wide the image is
     int sqrtProc;
+
     int colsMax;
     int rowsMax;
 
@@ -31,9 +34,12 @@ typedef struct BlockInfo{
     int rowStart, rowEnd, rowsToCalc;
     int colStart, colEnd, colsToCalc;
 
-    BlockInfo(ConfigData* data);
+    BlockInfo(const ConfigData* data);
 
     void UpdateData(int slave);
+    int GetNumPix(const ConfigData* data);
+    int GetPacketSize(const ConfigData* data);
+    int GetIndex(int row, int col);
 
 } BlockInfo;
 
@@ -45,9 +51,9 @@ typedef struct BlockInfo{
 //    col - the pixel column
 //
 //Outputs: index
-int calcIndex(ConfigData* data,int row,int col);
+int calcIndex(const ConfigData* data,int row,int col);
 //Column major index calc
-int calcIndexI(ConfigData* data,int row,int col);
+int calcIndexI(const ConfigData* data,int row,int col);
 
 //Math function to check if a number is a perfect square
 //

@@ -21,18 +21,18 @@ void masterDisplayCtoC(double commTime, double compTime);
 //Inputs:
 //    data - the ConfigData that holds the scene information.
 //
-//Outputs: None
-void masterSequential(ConfigData *data, float* pixels);
-void masterStaticStripsHorizontal(ConfigData* data, float* pixels);
+//Outputs: Communication time
+double masterSequential(ConfigData *data, float* pixels);
+double masterStaticStripsHorizontal(ConfigData* data, float* pixels);
 
-void masterStaticStripsVertical(ConfigData* data, float* pixels);
+double masterStaticStripsVertical(ConfigData* data, float* pixels);
 
-void masterStaticBlocks(ConfigData* data, float* pixels);
+double masterStaticBlocks(ConfigData* data, float* pixels);
 
-void masterStaticCyclesHorizontal(ConfigData* data, float* pixels);
+double masterStaticCyclesHorizontal(ConfigData* data, float* pixels);
 
-void masterStaticCyclesVertical(ConfigData* data, float* pixels);
+double masterStaticCyclesVertical(ConfigData* data, float* pixels);
 
-void masterDynamic(ConfigData* data, float* pixels);
+double masterDynamic(ConfigData* data, float* pixels);
 
 #endif

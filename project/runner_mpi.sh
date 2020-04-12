@@ -54,15 +54,167 @@ module load openmpi
 # **********************************************************************
 # MAKE SURE THAT YOU ONLY HAVE ONE OF THESE UNCOMMENTED AT A TIME!
 # **********************************************************************
+
+COMMON_ARGS="--mem-per-cpu=2000M raytrace_mpi -h 5000 -w 5000"
+OUT_FILE="rt_mpi.out"
+
+#rm $OUT_FILE
+
 # Sequential
 #srun -n 6 raytrace_mpi -h 1000 -w 1000 -c configs/twhitted.xml -p none 
+
 # Static Strips
-#srun -n 6 raytrace_mpi -h 1000 -w 1000 -c configs/twhitted.xml -p static_strips_vertical 
-#srun -n 6 raytrace_mpi -h 1000 -w 1000 -c configs/twhitted.xml -p static_strips_horizontal 
+
+
+#srun -n 1 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 2 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 20 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 25 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 36 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 49 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 55 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 64 $COMMON_ARGS -c configs/twhitted.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 1 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 2 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 20 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 25 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 36 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 49 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 55 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 64 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+
 # Static Cycles
 #srun -n 3 --mem-per-cpu=2000M raytrace_mpi -h 5000 -w 5000 -c configs/twhitted.xml -p static_cycles_horizontal -cs 2
 #srun -n 6 --mem-per-cpu=2000M raytrace_mpi -h 1000 -w 1000 -c configs/twhitted.xml -p static_cycles_vertical -cs 1
+
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 1 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 5 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 10 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 20 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 80 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 320 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 640 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 1280 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 1 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 5 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 10 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 20 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 40 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 160 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 350 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 650 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 1 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 5 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 10 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 20 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 50 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 100 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 250 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 400 |& tee -a $OUT_FILE
+
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 1 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 5 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 10 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 20 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 80 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 320 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 640 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 1280 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 1 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 5 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 10 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 20 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 40 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 160 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 350 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 650 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 1 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 5 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 10 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 20 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 50 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 100 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 250 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 400 |& tee -a $OUT_FILE
+
+#srun -n 1 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 2 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 20 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 25 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 36 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 49 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 55 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 64 $COMMON_ARGS -c configs/twhitted.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+
+#srun -n 1 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 2 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 20 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 25 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 36 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 49 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 55 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+#srun -n 64 $COMMON_ARGS -c configs/box.xml -p static_cycles_horizontal -cs 27 |& tee -a $OUT_FILE
+
 # Static Blocks
+#srun -n 9 --mem-per-cpu=2000M -o rt_mpi.out -e rt_mpi.err raytrace_mpi -h 1000 -w 1000 -c configs/twhitted.xml -p static_blocks 
 srun -n 9 --mem-per-cpu=2000M raytrace_mpi -h 1000 -w 1000 -c configs/twhitted.xml -p static_blocks 
+
+#srun -n 1 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 25 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 36 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 49 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 64 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
+
+#srun -n 1 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 25 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 36 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 49 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+#srun -n 64 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+
+
 # Dynamic
 # srun -n $SLURM_NPROCS raytrace_mpi -h 5000 -w 5000 -c configs/twhitted.xml -p dynamic -bh 1 -bw 1 
+
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 1 -bw 1 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 15 -bw 15 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 25 -bw 25 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 50 -bw 50 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 75 -bw 75 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 100 -bw 100 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 1 -bw 1 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 15 -bw 15 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 25 -bw 25 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 50 -bw 50 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 75 -bw 75 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 100 -bw 100 |& tee -a $OUT_FILE
+
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 1 -bw 1 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 15 -bw 15 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 25 -bw 25 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 50 -bw 50 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 75 -bw 75 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 100 -bw 100 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 1 -bw 1 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 15 -bw 15 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 25 -bw 25 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 50 -bw 50 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 75 -bw 75 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 100 -bw 100 |& tee -a $OUT_FILE
