@@ -230,6 +230,7 @@ void slaveStaticBlocks(ConfigData* data){
 }
 
 void slaveStaticCyclesHorizontal(ConfigData* data){
+    //return;
     double computationStart, computationStop, computationTime;
 
     // Vars to improve readability
@@ -237,7 +238,7 @@ void slaveStaticCyclesHorizontal(ConfigData* data){
     int rowsMax = data->height;
     // Number of rows to calcualte
     // Divide rows evenenly amoung processors
-    int rowsPerProc = rowsMax/data->mpi_procs + 2;
+    int rowsPerProc = rowsMax/data->mpi_procs + data->cycleSize;
     int rowsStart = data->mpi_rank * data->cycleSize;
 
 
@@ -268,6 +269,9 @@ void slaveStaticCyclesHorizontal(ConfigData* data){
 
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
+
+    //return;
+
     // Put computation time at the end of the pixel array
     pixels[numPix] = computationTime;
     // Ship it to master
@@ -277,7 +281,7 @@ void slaveStaticCyclesHorizontal(ConfigData* data){
 }
 
 void slaveStaticCyclesVertical(ConfigData* data){
-
+    slaveStaticCyclesHorizontal(data);
 }
 
 void slaveDynamic(ConfigData* data){

@@ -14,10 +14,11 @@ typedef struct BlockInfo{
     // How many blocks wide the image is
     int sqrtProc;
 
+    // Image size
     int colsMax;
     int rowsMax;
-
-    int slave;
+    // Index of the block
+    int blockID;
 
     int rowsNorm;
     int rowsExtra;
@@ -28,20 +29,67 @@ typedef struct BlockInfo{
     int colsRemain;
     int colsRemainStart;
 
+
+    // Coordinates of the block
     int blockRow;
     int blockCol;
 
+    // For pixel mapping
     int rowStart, rowEnd, rowsToCalc;
     int colStart, colEnd, colsToCalc;
 
+    // Construct a new BlockInfo
     BlockInfo(const ConfigData* data);
 
-    void UpdateData(int slave);
+    // Update the info if changing block. Useful for when the master is recieving
+    // and needs the info updated, but doesn't need a whole new blockinfo
+    void UpdateData(int blockID);
+    // Number of pixels represented by this block. Already multiplied by 3 for
+    // the size in floats
     int GetNumPix(const ConfigData* data);
+    // Like num pix, but with padding for extra data to be sent
     int GetPacketSize(const ConfigData* data);
+    // Get the index into a pixel array that represents this block
     int GetIndex(int row, int col);
 
+
 } BlockInfo;
+
+// Dynamic block info
+typedef struct DBlockInfo{
+
+    // User defined block size
+    // Not the acutal size of each block.
+    // Blocks on the end will be partial sized.
+    int blockHeight, blockWidth;
+
+
+    // Mapping to pixels
+    int blockRowStart, blockColStart;
+    int blockRowNum, blockColNum;
+    int blockRowEnd, blockColEnd;
+
+    // Number of blocks per image
+    int numBlocksWide, numBlocksTall;
+
+    int blockID;
+    int blockIDx, blockIDy;
+
+    // Constructs a dynamic block info
+    DBlockInfo(const ConfigData* data);
+
+    // Update the info if changing block. Useful for when the master is recieving
+    // and needs the info updated, but doesn't need a whole new blockinfo
+    void UpdateData(const ConfigData* data, int blockID);
+    // Number of pixels represented by this block. Already multiplied by 3 for
+    // the size in floats
+    int GetNumPix();
+    // Like num pix, but with padding for extra data to be sent
+    int GetPacketSize();
+    // Get the index into a pixel array that represents this block
+    int GetIndex(int row, int col);
+
+} DBlockInfo;
 
 //This function is a helper function to calculate an index into a pixel array
 //
@@ -65,5 +113,9 @@ int calcIndexI(const ConfigData* data,int row,int col);
 //    other - square root of the number
 int isPerfectSquare(int n);
 
+// Returns ceil(x/y)
+inline int ceilDiv(int x, int y){
+    return (x + y - 1) / y;
+}
 
 #endif

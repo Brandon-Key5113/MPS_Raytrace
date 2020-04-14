@@ -1,5 +1,8 @@
 #include "common.h"
 
+// For maths
+#include <algorithm>
+
 int calcIndex(const ConfigData* data,int row,int col){
     return 3 * ( row * data->width + col );
 }
@@ -33,7 +36,7 @@ BlockInfo::BlockInfo(const ConfigData* data){
     rowsMax = data->height;
 
 
-    slave = data->mpi_rank;
+    blockID = data->mpi_rank;
 
     rowsNorm = rowsMax/sqrtProc;
     rowsExtra = rowsNorm+1;
@@ -44,14 +47,14 @@ BlockInfo::BlockInfo(const ConfigData* data){
     colsRemain = colsMax%sqrtProc;
     colsRemainStart = colsMax - colsRemain;
 
-    UpdateData(slave);
+    UpdateData(blockID);
 }
 
-void BlockInfo::UpdateData(int slave){
-    this->slave = slave;
+void BlockInfo::UpdateData(int blockID){
+    this->blockID = blockID;
 
-    blockRow = slave/sqrtProc;
-    blockCol = slave%sqrtProc;
+    blockRow = blockID/sqrtProc;
+    blockCol = blockID%sqrtProc;
 
     if (blockRow >= rowsRemainStart){
         rowsToCalc = rowsExtra;
@@ -87,3 +90,55 @@ int BlockInfo::GetPacketSize(const ConfigData* data){
 int BlockInfo::GetIndex(int row, int col){
     return 3 * ( row * colsToCalc + col );
 }
+
+
+DBlockInfo::DBlockInfo(const ConfigData* data){
+    // Populate general block properties
+
+    // User defined block size
+    blockHeight = data->dynamicBlockHeight;
+    blockWidth = data->dynamicBlockWidth;
+
+    // Image size in blocks
+    numBlocksTall = ceilDiv(  data->height, blockHeight);
+    numBlocksWide = ceilDiv(  data->width, blockWidth);
+
+    // Populate block specific data from the rank
+    UpdateData(data, data->mpi_rank);
+}
+
+
+void DBlockInfo::UpdateData(const ConfigData* data, int blockID){
+    this->blockID = blockID;
+
+    // Coordinates of this block
+    blockIDx = blockID/numBlocksWide;
+    blockIDy = blockID%numBlocksWide;
+
+    // Calc the block coordinates in pixels
+    // upper left corner
+    blockColStart = blockIDx*blockWidth;
+    blockRowStart = blockIDy*blockHeight;
+
+    // lower right corner
+    blockColEnd = std::min(blockColStart+blockWidth, data->width );
+    blockRowEnd = std::min(blockRowStart+blockHeight, data->height );
+
+    // dimensions
+    blockColNum = blockColEnd - blockColStart;
+    blockRowNum = blockRowEnd - blockRowStart;
+}
+
+int DBlockInfo::GetNumPix(){
+    return 3*blockColNum*blockRowNum;
+}
+
+int DBlockInfo::GetPacketSize(){
+    return GetNumPix() + 2;
+}
+
+int DBlockInfo::GetIndex(int row, int col){
+    return 3 * ( row * blockColNum + col );
+}
+
+

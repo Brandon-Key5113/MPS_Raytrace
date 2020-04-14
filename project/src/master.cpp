@@ -409,9 +409,6 @@ double masterStaticBlocks(ConfigData* data, float* pixels){
             computationTime = packet[packetSize-1];
         }
 
-        // Copy packet data into pixel array
-        //if(slave ==3)
-        {
 
 
         for (int row = 0; row < blockInfo.rowsToCalc; row++){
@@ -426,7 +423,6 @@ double masterStaticBlocks(ConfigData* data, float* pixels){
                 pixels[pixelIndex+2] = packet[packetIndex+2];
             }
 
-        }
         }
 
     }
@@ -445,7 +441,7 @@ double masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
     // Vars to improve readability
     int colsMax = data->width;
     int rowsMax = data->height;
-    int rowsPerProc = rowsMax/data->mpi_procs + 2;
+    int rowsPerProc = rowsMax/data->mpi_procs + data->cycleSize;
     int rowsStart = data->mpi_rank * data->cycleSize;
 
     int numPix = calcIndex(data, rowsPerProc, 0);
@@ -470,11 +466,14 @@ double masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
             }
             rowMap++;
         }
+
     }
 
     //Stop the comp. timer
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
+
+    //return computationTime;
 
     // row in the pixel array
     int pixelRow = 0;
@@ -515,10 +514,49 @@ double masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
 }
 
 double masterStaticCyclesVertical(ConfigData* data, float* pixels){
-
-    return 0.0;
+    return masterStaticCyclesHorizontal(data, pixels);
 }
 
 double masterDynamic(ConfigData* data, float* pixels){
-    return 0.0;
+    DBlockInfo blockInfo = DBlockInfo(data);
+
+    MPI_Status status;
+    //Start the computation time timer.
+    double computationStart, computationStop, computationTime, computationTimeTemp;
+
+    computationStart = MPI_Wtime();
+
+    // Fetch packet size from the block info. The 0th item has largest size, so
+    // use it for allocation
+    int packetSize = blockInfo.GetPacketSize();
+    float* packet = new float[packetSize];
+
+
+    for (int blockID = 0; blockID < blockInfo.numBlocksWide*blockInfo.numBlocksTall; ++blockID){
+        blockInfo.UpdateData(data, blockID);
+        printf("Processing Block %d (%d, %d)\n", blockID, blockInfo.blockIDx, blockInfo.blockIDy);
+        //Render the scene.
+        for( int row = blockInfo.blockRowStart; row < blockInfo.blockRowEnd; ++row )
+        {
+            for( int col = blockInfo.blockColStart; col < blockInfo.blockColEnd; ++col )
+            {
+
+
+                //Calculate the index into the array.
+                int baseIndex = calcIndex(data, row, col);
+
+                //Call the function to shade the pixel.
+                shadePixel(&(pixels[baseIndex]),row,col,data);
+            }
+
+        }
+    }
+
+    //Stop the comp. timer
+    computationStop = MPI_Wtime();
+    computationTime = computationStop - computationStart;
+
+    delete[] packet;
+
+    return computationTime;
 }
