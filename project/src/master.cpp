@@ -132,7 +132,7 @@ double masterStaticStripsHorizontal(ConfigData* data, float* pixels){
     MPI_Status status;
 
     //Start the computation time timer.
-    double computationStart, computationStop, computationTime, computationTimeTemp;
+    double computationStart, computationStop, computationTime;
 
     // Vars to improve readability
     int colsMax = data->width;
@@ -233,7 +233,7 @@ double masterStaticStripsVertical(ConfigData* data, float* pixels){
     MPI_Status status;
 
     //Start the computation time timer.
-    double computationStart, computationStop, computationTime, computationTimeTemp;
+    double computationStart, computationStop, computationTime;
 
     // Vars to improve readability
     int colsMax = data->width;
@@ -354,7 +354,7 @@ double masterStaticStripsVertical(ConfigData* data, float* pixels){
 double masterStaticBlocks(ConfigData* data, float* pixels){
     MPI_Status status;
     //Start the computation time timer.
-    double computationStart, computationStop, computationTime, computationTimeTemp;
+    double computationStart, computationStop, computationTime;
 
     computationStart = MPI_Wtime();
 
@@ -390,16 +390,15 @@ double masterStaticBlocks(ConfigData* data, float* pixels){
     // Get the block info for the last slave
     // This will have the largest block size, so use it to alloc memory
     blockInfo.UpdateData(data->mpi_procs - 1);
-    int packetSize = blockInfo.GetPacketSize(data);
+    int packetSize = blockInfo.GetPacketSize();
     float* packet = new float[packetSize];
 
     int packetIndex;
     int pixelIndex;
-    int pixToCopy;
 
     for (int slave = 1; slave < data->mpi_procs; slave++){
         blockInfo.UpdateData(slave);
-        packetSize = blockInfo.GetPacketSize(data);
+        packetSize = blockInfo.GetPacketSize();
 
         // read new data
         MPI_Recv( packet, packetSize, MPI_FLOAT, slave, MPI_MESSAGE_TAG_PIX , MPI_COMM_WORLD, &status);
@@ -436,13 +435,13 @@ double masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
     MPI_Status status;
 
     //Start the computation time timer.
-    double computationStart, computationStop, computationTime, computationTimeTemp;
+    double computationStart, computationStop, computationTime;
 
     // Vars to improve readability
     int colsMax = data->width;
     int rowsMax = data->height;
     int rowsPerProc = rowsMax/data->mpi_procs + data->cycleSize;
-    int rowsStart = data->mpi_rank * data->cycleSize;
+    //int rowsStart = data->mpi_rank * data->cycleSize;
 
     int numPix = calcIndex(data, rowsPerProc, 0);
     int packetSize = numPix + 1;
@@ -521,35 +520,105 @@ double masterDynamic(ConfigData* data, float* pixels){
     DBlockInfo blockInfo = DBlockInfo(data);
 
     MPI_Status status;
-    //Start the computation time timer.
-    double computationStart, computationStop, computationTime, computationTimeTemp;
 
+    double computationStart, computationStop, computationTime;
+    //Start the computation time timer.
     computationStart = MPI_Wtime();
 
     // Fetch packet size from the block info. The 0th item has largest size, so
     // use it for allocation
     int packetSize = blockInfo.GetPacketSize();
+    int numBlocks = blockInfo.numBlocksWide*blockInfo.numBlocksTall;
+    int packetIndex;
+    int pixelIndex;
+    int slave;
+    int slaveBlockID;
     float* packet = new float[packetSize];
 
+    //printf("Block Size: %dx%d\n", blockInfo.blockWidth, blockInfo.blockHeight);
+    //printf("Blocks/Image: %dx%d\n", blockInfo.numBlocksWide, blockInfo.numBlocksTall);
 
-    for (int blockID = 0; blockID < blockInfo.numBlocksWide*blockInfo.numBlocksTall; ++blockID){
-        blockInfo.UpdateData(data, blockID);
-        printf("Processing Block %d (%d, %d)\n", blockID, blockInfo.blockIDx, blockInfo.blockIDy);
-        //Render the scene.
-        for( int row = blockInfo.blockRowStart; row < blockInfo.blockRowEnd; ++row )
-        {
-            for( int col = blockInfo.blockColStart; col < blockInfo.blockColEnd; ++col )
-            {
+    // Slaves will start on their rank-1 blockID
+    // When finished, they will report their results to the master along with
+    // their rank, computation time, and which blockID they finished.
+    // The master will wait for a report from any slave
+    // Upon getting a report, it will send the slave the ID of the next blockID
+    // to parse. Once out of jobs, the master will send blockID = -1
+    int blockID;
+    for (blockID = data->mpi_procs-1; blockID < numBlocks; ++blockID){
 
+        //printf("Processing Block %d (%d, %d)\n", blockID, blockInfo.blockIDx, blockInfo.blockIDy);
 
-                //Calculate the index into the array.
-                int baseIndex = calcIndex(data, row, col);
+        MPI_Recv( packet, packetSize, MPI_FLOAT, MPI_ANY_SOURCE , MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD, &status);
 
-                //Call the function to shade the pixel.
-                shadePixel(&(pixels[baseIndex]),row,col,data);
+        slave = packet[DBlockInfo::D_PACKET_META::D_PACKET_META_SLAVE];
+        slaveBlockID = packet[DBlockInfo::D_PACKET_META::D_PACKET_META_BLOCK_ID];
+
+        blockInfo.UpdateData(data, slaveBlockID);
+
+        // Send next blockID to the slave
+        MPI_Send( &blockID, 1, MPI_INT, slave, MPI_MESSAGE_TAG_D_CMD , MPI_COMM_WORLD);
+
+        //printf("Slave %d gets block %d (%d,%d)\n", slave, blockID, blockInfo.blockIDx, blockInfo.blockIDy);
+
+        // Read packet data into pixel array
+        for (int row = 0; row < blockInfo.blockRowNum; row++){
+            for (int col = 0; col < blockInfo.blockColNum; col++){
+                // Index into pixel array accounts for the offsets
+                pixelIndex = calcIndex(data, blockInfo.blockRowStart + row,
+                                             blockInfo.blockColStart + col);
+                // Packet is zero indexed
+                packetIndex = blockInfo.GetIndex(row, col);
+
+                pixels[pixelIndex] = packet[packetIndex];
+                pixels[pixelIndex+1] = packet[packetIndex+1];
+                pixels[pixelIndex+2] = packet[packetIndex+2];
             }
 
         }
+
+
+    }
+
+
+    // Finish up last comm with slaves. Fetch the last results, and send back
+    blockID = -1;
+    for (int i = 1; i < data->mpi_procs; ++i){
+
+        MPI_Recv( packet, packetSize, MPI_FLOAT, MPI_ANY_SOURCE, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD, &status);
+
+        slave = packet[DBlockInfo::D_PACKET_META::D_PACKET_META_SLAVE];
+        slaveBlockID = packet[DBlockInfo::D_PACKET_META::D_PACKET_META_BLOCK_ID];
+
+
+        // Grab the computation time
+        if (packet[DBlockInfo::D_PACKET_META::D_PACKET_META_COMP_T] > computationTime){
+            computationTime = packet[DBlockInfo::D_PACKET_META::D_PACKET_META_COMP_T];
+        }
+
+        // Update block info
+        blockInfo.UpdateData(data, slaveBlockID);
+
+        // Send next blockID to the slave. Do before packet unpacking so slave
+        // isn't left waiting
+        MPI_Send( &blockID, 1, MPI_INT, slave, MPI_MESSAGE_TAG_D_CMD , MPI_COMM_WORLD);
+
+        // Read packet data into pixel array
+        for (int row = 0; row < blockInfo.blockRowNum; row++){
+            for (int col = 0; col < blockInfo.blockColNum; col++){
+                // Index into pixel array accounts for the offsets
+                pixelIndex = calcIndex(data, blockInfo.blockRowStart + row,
+                                             blockInfo.blockColStart + col);
+                // Packet is zero indexed
+                packetIndex = blockInfo.GetIndex(row, col);
+
+                pixels[pixelIndex] = packet[packetIndex];
+                pixels[pixelIndex+1] = packet[packetIndex+1];
+                pixels[pixelIndex+2] = packet[packetIndex+2];
+            }
+
+        }
+
     }
 
     //Stop the comp. timer

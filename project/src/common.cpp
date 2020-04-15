@@ -27,17 +27,20 @@ int isPerfectSquare(int n)
 }
 
 BlockInfo::BlockInfo(const ConfigData* data){
+    // Get the square root of the number of procs
     sqrtProc = isPerfectSquare(data->mpi_procs);
     if (sqrtProc == 0){
         return;
     }
 
+    // Image size in pix
     colsMax = data->width;
     rowsMax = data->height;
 
-
+    // ID of this block
     blockID = data->mpi_rank;
 
+    // Sizing info
     rowsNorm = rowsMax/sqrtProc;
     rowsExtra = rowsNorm+1;
     rowsRemain = rowsMax%sqrtProc;
@@ -79,12 +82,12 @@ void BlockInfo::UpdateData(int blockID){
     colEnd = colStart+colsToCalc;
 }
 
-int BlockInfo::GetNumPix(const ConfigData* data){
+int BlockInfo::GetNumPix(){
     return 3*(rowsToCalc+1)*colsToCalc;
 }
 
-int BlockInfo::GetPacketSize(const ConfigData* data){
-    return GetNumPix(data) + 1;
+int BlockInfo::GetPacketSize(){
+    return GetNumPix() + 1;
 }
 
 int BlockInfo::GetIndex(int row, int col){
@@ -112,8 +115,8 @@ void DBlockInfo::UpdateData(const ConfigData* data, int blockID){
     this->blockID = blockID;
 
     // Coordinates of this block
-    blockIDx = blockID/numBlocksWide;
-    blockIDy = blockID%numBlocksWide;
+    blockIDx = blockID%numBlocksWide;
+    blockIDy = blockID/numBlocksWide;
 
     // Calc the block coordinates in pixels
     // upper left corner
@@ -134,11 +137,11 @@ int DBlockInfo::GetNumPix(){
 }
 
 int DBlockInfo::GetPacketSize(){
-    return GetNumPix() + 2;
+    return GetNumPix() + D_PACKET_META_MAX;
 }
 
 int DBlockInfo::GetIndex(int row, int col){
-    return 3 * ( row * blockColNum + col );
+    return D_PACKET_META_MAX + 3 * ( row * blockColNum + col );
 }
 
 
