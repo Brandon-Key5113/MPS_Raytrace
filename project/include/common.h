@@ -5,7 +5,7 @@
 
 typedef enum{
     MPI_MESSAGE_TAG_PIX = 8,
-    MPI_MESSAGE_TAG_COMP_T
+    MPI_MESSAGE_TAG_D_CMD
 } MpiMesssageTag;
 
 
@@ -46,9 +46,9 @@ typedef struct BlockInfo{
     void UpdateData(int blockID);
     // Number of pixels represented by this block. Already multiplied by 3 for
     // the size in floats
-    int GetNumPix(const ConfigData* data);
+    int GetNumPix();
     // Like num pix, but with padding for extra data to be sent
-    int GetPacketSize(const ConfigData* data);
+    int GetPacketSize();
     // Get the index into a pixel array that represents this block
     int GetIndex(int row, int col);
 
@@ -88,6 +88,14 @@ typedef struct DBlockInfo{
     int GetPacketSize();
     // Get the index into a pixel array that represents this block
     int GetIndex(int row, int col);
+
+
+    typedef enum{
+        D_PACKET_META_SLAVE = 0,
+        D_PACKET_META_BLOCK_ID,
+        D_PACKET_META_COMP_T,
+        D_PACKET_META_MAX
+    } D_PACKET_META;
 
 } DBlockInfo;
 

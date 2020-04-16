@@ -78,7 +78,42 @@ OUT_FILE="rt_mpi.out"
 
 #srun -n 1 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
 
+srun -n 64 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 49 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 36 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 25 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 1 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+
 
 # Dynamic
-srun -n 6 raytrace_mpi -h 1000 -w 1000 -c configs/twhitted.xml -p dynamic -bh 5 -bw 5 
+#srun -n 6 raytrace_mpi -h 1000 -w 1000 -c configs/twhitted.xml -p dynamic -bh 5 -bw 5 
+
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 1 -bw 1 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 15 -bw 15 |& tee -a $OUT_FILE
+#srun -n 9 raytrace_mpi -h 1000 -w 1000 -c configs/twhitted.xml -p dynamic -bh 500 -bw 100 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 50 -bw 50 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 75 -bw 75 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 100 -bw 100 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 1 -bw 1 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 15 -bw 15 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 25 -bw 25 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 50 -bw 50 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 75 -bw 75 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/twhitted.xml -p dynamic -bh 100 -bw 100 |& tee -a $OUT_FILE
+
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 1 -bw 1 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 15 -bw 15 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 25 -bw 25 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 50 -bw 50 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 75 -bw 75 |& tee -a $OUT_FILE
+#srun -n 9 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 100 -bw 100 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 1 -bw 1 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 15 -bw 15 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 25 -bw 25 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 50 -bw 50 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 75 -bw 75 |& tee -a $OUT_FILE
+#srun -n 16 $COMMON_ARGS -c configs/box.xml -p dynamic -bh 100 -bw 100 |& tee -a $OUT_FILE
 

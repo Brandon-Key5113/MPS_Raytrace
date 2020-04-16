@@ -71,7 +71,7 @@ void slaveStaticStripsHorizontal(ConfigData* data){
                     ((data->mpi_rank - rowsRemain) * rowsPerProcNom);
     }
 
-    int rowsEnd = rowsStart + rowsToCalc;
+    //int rowsEnd = rowsStart + rowsToCalc;
 
     //Allocate space for the image on the master.
     float* pixels = new float[ calcIndex(data, rowsToCalc + 1, 0)];
@@ -95,7 +95,6 @@ void slaveStaticStripsHorizontal(ConfigData* data){
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
 
-    int baseIndex = calcIndex(data, rowsStart, 0);
     int pixToSave = calcIndex(data, rowsToCalc, 0);
 
     int packetSize = pixToSave + 1; // pixel data plus comp time
@@ -143,7 +142,7 @@ void slaveStaticStripsVertical(ConfigData* data){
                     ((data->mpi_rank - colsRemain) * colsPerProcNom);
     }
 
-    int colsEnd = colsStart + colsToCalc;
+    //int colsEnd = colsStart + colsToCalc;
 
     //Allocate space for the image on the master.
     float* pixels = new float[ calcIndexI(data, 0, colsToCalc + 1)];
@@ -168,7 +167,6 @@ void slaveStaticStripsVertical(ConfigData* data){
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
 
-    int baseIndex = calcIndexI(data, 0, colsStart);
     int pixToSave = calcIndexI(data, 0, colsToCalc);
 
     int packetSize = pixToSave + 1; // pixel data plus comp time
@@ -198,7 +196,7 @@ void slaveStaticBlocks(ConfigData* data){
         return;
     }
 
-    int packetSize = blockInfo.GetPacketSize(data);
+    int packetSize = blockInfo.GetPacketSize();
     float* pixels = new float[packetSize];
 
     //Render the scene.
@@ -239,7 +237,7 @@ void slaveStaticCyclesHorizontal(ConfigData* data){
     // Number of rows to calcualte
     // Divide rows evenenly amoung processors
     int rowsPerProc = rowsMax/data->mpi_procs + data->cycleSize;
-    int rowsStart = data->mpi_rank * data->cycleSize;
+    //int rowsStart = data->mpi_rank * data->cycleSize;
 
 
     int numPix = calcIndex(data, rowsPerProc, 0);
@@ -285,5 +283,60 @@ void slaveStaticCyclesVertical(ConfigData* data){
 }
 
 void slaveDynamic(ConfigData* data){
+    //return;
+    MPI_Status status;
+
+    DBlockInfo blockInfo = DBlockInfo(data);
+    // start the slaves off with their initial
+    int blockID = data->mpi_rank - 1;
+
+
+    // Fetch packet size from the block info. The 0th item has largest size, so
+    // use it for allocation
+    blockInfo.UpdateData(data, 0);
+    int packetSize = blockInfo.GetPacketSize();
+    float* packet = new float[packetSize];
+
+    double computationStart, computationStop, computationTime;
+    computationTime = 0;
+
+
+
+
+    while (blockID != -1){
+        // Update the blockInfo
+        blockInfo.UpdateData(data, blockID);
+
+        // Perform calculations
+        computationStart = MPI_Wtime();
+        //Render the scene.
+        for( int row = 0; row < blockInfo.blockRowNum; ++row )
+        {
+            for( int col = 0; col < blockInfo.blockColNum; ++col )
+            {
+                //Calculate the index into the array.
+                int baseIndex = blockInfo.GetIndex(row,col);
+
+                //Call the function to shade the pixel.
+                shadePixel(&(packet[baseIndex]),row + blockInfo.blockRowStart, col + blockInfo.blockColStart,data);
+            }
+
+        }
+        //Start the computation time timer.
+        computationStop = MPI_Wtime();
+        computationTime += computationStop - computationStart;
+
+        // pack the packet with needed data.
+        packet[DBlockInfo::D_PACKET_META::D_PACKET_META_BLOCK_ID] = blockID;
+        packet[DBlockInfo::D_PACKET_META::D_PACKET_META_SLAVE] = data->mpi_rank;
+        packet[DBlockInfo::D_PACKET_META::D_PACKET_META_COMP_T] = computationTime;
+
+        // Send data to master
+        MPI_Send( packet, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
+
+        // Recieve command from master
+        MPI_Recv( &blockID, 1, MPI_INT, 0, MPI_MESSAGE_TAG_D_CMD , MPI_COMM_WORLD, &status);
+    }
+
 
 }
