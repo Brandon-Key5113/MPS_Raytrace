@@ -107,6 +107,8 @@ void slaveStaticStripsHorizontal(ConfigData* data){
 
     MPI_Send( packet, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
     //Delete the pixel data.
     delete[] packet;
     delete[] pixels;
@@ -177,6 +179,8 @@ void slaveStaticStripsVertical(ConfigData* data){
     packet[0] = computationTime;
     memcpy(&(packet[1]), pixels, pixToSave * sizeof(float));
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
     MPI_Send( packet, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
 
     //Delete the pixel data.
@@ -220,6 +224,8 @@ void slaveStaticBlocks(ConfigData* data){
 
     // Add computation time to the end of the packet
     pixels[packetSize-1] = computationTime;
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     // send
     MPI_Send( pixels, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
@@ -267,7 +273,7 @@ void slaveStaticCyclesHorizontal(ConfigData* data){
 
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
-
+    MPI_Barrier(MPI_COMM_WORLD);
     //return;
 
     // Put computation time at the end of the pixel array

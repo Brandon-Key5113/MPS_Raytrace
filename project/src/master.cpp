@@ -188,6 +188,7 @@ double masterStaticStripsHorizontal(ConfigData* data, float* pixels){
     //Stop the comp. timer
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
+    MPI_Barrier(MPI_COMM_WORLD);
 
     // Consolidate all pixels and comm time(Communication)
     int slave = 1;
@@ -292,6 +293,7 @@ double masterStaticStripsVertical(ConfigData* data, float* pixels){
     //Stop the comp. timer
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
+    MPI_Barrier(MPI_COMM_WORLD);
 
     // Consolidate all pixels and comm time(Communication)
     int slave = 1;
@@ -387,6 +389,8 @@ double masterStaticBlocks(ConfigData* data, float* pixels){
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // Get the block info for the last slave
     // This will have the largest block size, so use it to alloc memory
     blockInfo.UpdateData(data->mpi_procs - 1);
@@ -472,6 +476,8 @@ double masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
     computationStop = MPI_Wtime();
     computationTime = computationStop - computationStart;
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
     //return computationTime;
 
     // row in the pixel array
@@ -498,7 +504,9 @@ double masterStaticCyclesHorizontal(ConfigData* data, float* pixels){
             for(int i = 0; i < data->cycleSize && pixelRow < rowsMax; i++){
                 //std::cout << "Row In Pixels " << pixelRow << " Row in Packet " << mappedRow << std::endl;
                 // memcpy row from incoming data to the pixel array
-                memcpy(&(pixels[calcIndex(data, pixelRow, 0)]), &(pix[calcIndex(data, mappedRow, 0)]), sizeof(float)*3*data->width );
+                memcpy(&(pixels[calcIndex(data, pixelRow, 0)]),
+                       &(pix[calcIndex(data, mappedRow, 0)]),
+                       sizeof(float)*3*data->width );
                 mappedRow++;
                 pixelRow++;
             }
