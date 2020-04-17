@@ -77,6 +77,8 @@ Designed by: \\
 
 	The given sequential code was the basis for all partitioning methods. 
 	
+	The communication time for all methods was found by subtracting the computation time from the total execution time. This ensure that any hidden communication was not measured as would be the case if communication time was explicitly measured. Clock time was captured before and after processing. The difference represented the computation time. The longest computation among the slaves and master was considered the total system computation time since the system would be waiting on the slowest slave. 
+	
 
 	\subsection{Static Strips}
 		The first partitioning scheme that was implemented was static vertical strips. Each processor was responsible for rendering an even share of the image as seen in Equation \ref{eqn:strip_size}.
@@ -155,10 +157,17 @@ Designed by: \\
 		
 		To facilitate computation, a struct the represents a block was created. It specifies the coordinates of block in terms of blocks and pixels. This allows easily determining the appropriate packet size as well as which pixels the tasks should process. This helped both slave and master as well as cleaned up the code. 
 		
-		Like with other static partitioning schemes, the master would receive slave packets in order of their rank. Again, the packet would 
+		Like with other static partitioning schemes, the master would receive slave packets in order of their rank. Again, the packet would contain the computation time of the slaves after the pixel data. The master stored the computation time if it was larger than the currently stored computation time. 
 	
 	\subsection{Dynamic Blocks}
 	
+		Dynamic partitioning was the final scheme that was implemented. Unlike the static partitioning schemes, processors were not assigned work at startup, instead, when a slave finishes a work unit, it requests a new job from the master. This means that the master is not responsible for rendering, and instead just accepts packets from slaves and delegates work. At startup, slaves take a work unit based on their rank. This was done to eliminate communication on startup. Since the master would have to talk to each slave one at a time at startup, this would cause a lot of un-masked communication. Instead of the master telling slaves which pixels to calculate, slaves were told which job id to work on next. This meant that slaves had to calculate their pixel range for each job. This is a few simple calculations which is hopefully quicker than the reduced communication as a result.
+		
+		The master would wait for a message from any slave. This packet would contain the resulting pixels as well as: slave computation time, slave rank, and the job id that was just completed. The slave rank was sent so that the master knew where to send the next job. The job id was included so that the master could work out where the pixels map into the master pixel array. Job id was incremented by one each time a new slave finished work. Before the packet was fully parsed, the next job id was send to the slave as soon as the slave id was parsed from the packet. This was done so that the slave wouldn't have to wait on the master to start working on the next job. Once the master was out of new jobs, the master went into a different state. 
+		
+		In this new state, the master would still receive new packets from any slave, but it would send -1 as the new job id to slaves. This would tell the slaves that there is no more work. In this new state, the master would start storing the longest computation time. The master would know that once it received a packet from each slave, all computation was done. 
+		
+		 The image was divided into blocks (work units) of user defined size. Figure \ref{fig:dynamic} shows an image divided up into blocks.
 		
 		\begin{figure}[H]
 			\centering
@@ -167,14 +176,28 @@ Designed by: \\
 			\label{fig:dynamic}
 		\end{figure}
 	
+		When a block did not fit on the image, the block was clipped. In other schemes that would lead to load imbalance, but dynamic partitioning causes the slave to simply get a new job quicker. Blocks could be rectangular or square. 
+	
 \section{Results and Analysis}
+
+	To test the performance of each partitioning scheme, each was tested with varying number of processors and various work sizes. The parallel implementations were compared to sequential 
 
 	\subsection{Sequential}
 		The sequential code took 112.94 seconds to parse the simple image and 3585.36 seconds to parse the complex image. 
 		
 		
 	\subsection{Static Strips}
-
+		
+		Static vertical strips were divided among processors evenly, and there were no varying parameters other than processors. The performance when rendering the simple image was recorded in Table \ref{tab:strips_simple} and visualized in Figure \ref{fig:static-strips}.
+		
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.7\linewidth]{"Pictures/Static Strips"}
+			\caption{Performance Scaling of Static Vertical Strips}
+			\label{fig:static-strips}
+		\end{figure}
+	
+		It can be seen that performance dramatically increases with more processors when there are few processors ($<$16). As more processors are dedicated to the problem, the performance increase decreases.
 		
 		\begin{table}[H]
 			\caption{Performance of Vertical Strips with Simple Image}
@@ -200,15 +223,11 @@ Designed by: \\
 			\end{tabular}
 		\end{table}
 	
-		
-		\begin{figure}[H]
-			\centering
-			\includegraphics[width=0.7\linewidth]{"Pictures/Static Strips"}
-			\caption{Performance Scaling of Static Vertical Strips}
-			\label{fig:static-strips}
-		\end{figure}
+		It should be noted that this algorithm is slower than the sequential code until 4 or more processors are used. An ideal speedup would match the number of processors, but it was noted that the speedup was about a quarter of the ideal speed. At 4 cores, a speedup of 1.374 was achieved, which is a bit more than a quarter of the ideal speedup of 4. At 36 cores, a speedup of 8.9 was realized, which is slightly less than the quarter of ideal speed up (9). The a quarter of ideal speedup at 64 processors would be 16, but only a speedup of 12.6 was achieved. This shows that not only is the speedup less than ideal, it becomes relatively less efficient with more processors. This is partially due to the increasing communication times. This is also partially due to the system being limited by the slowest processor. The more active processors, the greater the chance that another task from another user is slowing the machine.  
 	
 	\subsection{Static Cycles}
+	
+		Static Cycles has the parameters of: processors and cycle size. The simple image was rendered with 4, 9, and 16 processors for various cycle sizes. The results were recorded in Table \ref{tab:cycles_simple_cycle_size}. 
 
 		\begin{table}[H]
 			\caption{Performance of Horizontal Cycles with Simple Image as Cycle Size Varies}
@@ -247,6 +266,7 @@ Designed by: \\
 			\end{tabular}
 		\end{table}
 	
+		The performance when varying cycle size was plotted in Figure \ref{fig:cycles-strip-size}.
 		
 		\begin{figure}[H]
 			\centering
@@ -254,6 +274,10 @@ Designed by: \\
 			\caption{Performance Scaling of Cycle Size}
 			\label{fig:cycles-strip-size}
 		\end{figure}
+	
+		As strip size increases, so does load imbalance. This causes performance to decrease when strip size increases. 
+		
+		Once performance scaling with cycle size was known, the performance scaling with processor number was desired. As such, the cycle size was held constant at 27 and the number of processors were varied. The results were stored in Table \ref{tab:cycles_simple_procs}.
 	
 		\begin{table}[H]
 			\caption{Performance of Horizontal Cycles with Simple Image as Number of Processors Varies}
@@ -279,6 +303,7 @@ Designed by: \\
 			\end{tabular}
 		\end{table}
 	
+		To better visualize the data, Figure \ref{fig:cycles-cores} was created.
 		
 		\begin{figure}[H]
 			\centering
@@ -287,7 +312,11 @@ Designed by: \\
 			\label{fig:cycles-cores}
 		\end{figure}
 	
+		Performance of the static horizontal cycles matches the sequential code after 2 cores are given to rendering.  After 25 processors, the benefit of adding more processors is greatly reduced. With a more complex task, this may extend to more cores.
+	
 	\subsection{Static Blocks}
+	
+		The performance scaling of static blocks with increasing the number of processors was measured and recorded in Table \ref{tab:blocks_simple}. 
 	
 		\begin{table}[H]
 			\caption{Performance of Blocks with Simple Image}
@@ -310,7 +339,22 @@ Designed by: \\
 			\end{tabular}
 		\end{table}
 	
+		Performance scaling was graphed in Figure \ref{fig:blocksscaling}.
+		
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.7\linewidth]{Pictures/blocks_scaling}
+			\caption{Performance of Static Blocks with Simple Image as Number of Processors Varies}
+			\label{fig:blocksscaling}
+		\end{figure}
+	
+		This partitioning scheme doesn't match the speed of the sequential code until there are 4 processors being used. It also seems the block partitioning is slower than the other static partitioning methods. This is likely due to the poor locality of the data. While a block is spatially local in an image, the image is represented as a 1D array in memory. Jumping between rows causes the cache to need to reload pixel data. 
+	
+		
+	
 	\subsection{Dynamic Blocks}
+	
+		To examine the performance of dynamic blocks, multiple square block sizes were tested with 9 and 16 processors. The results were stored in Table \ref{tab:dynamic_square}.
 	
 		\begin{table}[H]
 			\caption{Performance of Blocks - Simple Image with Square Blocks}
@@ -337,6 +381,20 @@ Designed by: \\
 			\end{tabular}
 		\end{table}
 	
+		
+		To visualize the scaling, Figure \ref{fig:dynamic-simple} was created.
+	
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.7\linewidth]{"Pictures/Dynamic Simple"}
+			\caption{Performance Scaling of Dynamic Mapping Processing Simple Image}
+			\label{fig:dynamic-simple}
+		\end{figure}
+	
+		With a work size of a single pixel, much time is wasted communicating and loading processor cache. It is interesting to note that the communication to computation ratio is still low at the block size of 1x1. This is likely due to the precision of floating points, where the calculation takes so little time that it is difficult to measure. Once a larger block size is used, performance doesn't change much with increasing block size, but performance does increase slightly with increasing block size.
+		
+		The performance when changing the shape of the blocks was recorded in Table \ref{tab:dynamic_oblong}.
+	
 		\begin{table}[H]
 			\caption{Performance of Blocks - Simple Image with Oblong Blocks}
 			\label{tab:dynamic_oblong}
@@ -361,6 +419,10 @@ Designed by: \\
 				\hline
 			\end{tabular}
 		\end{table}
+	
+		Larger blocks seem to result in faster execution with the dynamic partitioning scheme.
+	
+		The measurements were repeated with the complex scene and recorded in Table \ref{tab:dynamic_square_complex}.
 	
 		\begin{table}[H]
 			\caption{Performance of Blocks - Complex Image with Square Blocks}
@@ -387,6 +449,19 @@ Designed by: \\
 			\end{tabular}
 		\end{table}
 	
+		Again, the complex image rendering performance was visualized in Figure \ref{fig:dynamic-complex}.
+	
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.7\linewidth]{"Pictures/Dynamic Complex"}
+			\caption{Performance Scaling of Dynamic Mapping Processing Complex Image}
+			\label{fig:dynamic-complex}
+		\end{figure}
+	
+		The complex image scales the same as the simple image.
+		
+		Oblong block size was tested and recorded in Table \ref{tab:dynamic_oblong_complex}.
+	
 		\begin{table}[H]
 			\caption{Performance of Blocks - Complex Image with Oblong Blocks}
 			\label{tab:dynamic_oblong_complex}
@@ -412,30 +487,31 @@ Designed by: \\
 			\end{tabular}
 		\end{table}
 	
+		It seems that having a block that is taller than it is wide causes performance loss. 
+		
+
+	\subsection{Comparing Schemes}
+	
+		In order to compare partitioning schemes, the best speedup with 16 processors was graphed in Figure \ref{fig:comparison}.
 		
 		\begin{figure}[H]
 			\centering
-			\includegraphics[width=0.7\linewidth]{"Pictures/Dynamic Simple"}
-			\caption{Performance Scaling of Dynamic Mapping Processing Simple Image}
-			\label{fig:dynamic-simple}
+			\includegraphics[width=0.7\linewidth]{Pictures/Comparison}
+			\caption{Best Speedup with 16 Processors}
+			\label{fig:comparison}
 		\end{figure}
 	
-		\begin{figure}[H]
-			\centering
-			\includegraphics[width=0.7\linewidth]{"Pictures/Dynamic Complex"}
-			\caption{Performance Scaling of Dynamic Mapping Processing Complex Image}
-			\label{fig:dynamic-complex}
-		\end{figure}
+		Static cycles with a small cycle size was the fastest static partitioning scheme, while dynamic was faster yet dynamic was based off of blocks, which proved to be the slowest. If the dynamic mapping was combined with the cyclical partitioning scheme, it seems to reason that this would yield the fastest algorithm of this style.
 
 \section{Conclusion}
 
 	Since dynamic allocation was the last implementation, many lessons were learned during its implementation that could be applied to the static partitioning methods. In all static methods, the master waited for slave results in order of their rank. This causes blocking behavior if a slave with lower rank takes longer to finish processing than a slave with higher rank. To fix this, the master should accept results from any salve, and the slave number should have been included in the packet. Additionally, the master should be given the least amount of processing so it has time to process the slave results. 
 	
-	Dynamic cycles probably the best
-	
+	If there was more time to work on this project, it would have been useful to graph the load balancing of each processor. This could be done by having the master store all computation times of each slave and display them at the end. This could highlight load imbalance due to the partitioning scheme, non-homogeneous processors, or outside load on processors. 
+
 	The static partitioning schemes try to balance load by giving each processor equal amounts of work. This works well if processors are homogeneous and only the ray-tracing program is running on the processors. If one processor is significantly faster (or less loaded) than the rest, it will sit idle, the converse is true too: a slower processor (or a more highly loaded one) will hold up the rest of the processors. Dynamic scheduling may have extra overhead in terms of the master not doing work and additional communication, but the more even load balancing tends to hide this overhead. The greater the difference in processors, the greater the advantage that dynamic scheduling will have.
 	
-	
+	Overall, this project was useful in highlighting the importance of work distribution in a multi-processor application as well as the diminishing returns of adding more processors to a job. It was found that all of the parallel algorithms required 2 or more processors to match the performance of sequential code; only large jobs than can leverage multiple processors are worth parallelizing. 
 
 \section{Acknowledgments}
 	
