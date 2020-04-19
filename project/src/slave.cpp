@@ -105,9 +105,9 @@ void slaveStaticStripsHorizontal(ConfigData* data){
     packet[0] = computationTime;
     memcpy(&(packet[1]), pixels, pixToSave * sizeof(float));
 
-    MPI_Send( packet, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
-
     MPI_Barrier(MPI_COMM_WORLD);
+
+    MPI_Send( packet, packetSize, MPI_FLOAT, 0, MPI_MESSAGE_TAG_PIX, MPI_COMM_WORLD);
 
     //Delete the pixel data.
     delete[] packet;
