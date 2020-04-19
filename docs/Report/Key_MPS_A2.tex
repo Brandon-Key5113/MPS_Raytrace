@@ -59,7 +59,6 @@ Submitted: 15 April 2020\\
 Instructor: Dr. Shaaban\\
 TAs: Robert Mason \\
 Adam Smith\\
-Designed by: \\
 \vspace{0.5 cm}
 \end{flushright}
 
@@ -70,21 +69,21 @@ Designed by: \\
 
 \section{Abstract}
 	
-	
+	A complex program like ray tracing leads itself to being executed in parallel. The image can be divided into: strips, groups of rows/columns, and blocks. The jobs can be scheduled at compile time (statically) or at run time (dynamic). Dynamic scheduling leads to better load balancing and communication times that are masked by computation. Due to data locality, the best partitioning scheme was found to be horizontal cycles with best speedup of 8.446 with 16 cores. Dynamic scheduling had even greater speedup with 16 cores of 8.729, even though it used the worst partitioning scheme: blocks. After examining results, it was theorized that the best combination of partitioning and scheduling would be dynamically scheduling rows to be processed.
 	
 
 \section{Design Methodology and Theory}
 
-	The given sequential code was the basis for all partitioning methods. 
+	The task of rendering an image can be broken into multiple job units and scheduled in a few different ways. The jobs can be assigned at compile time - statically, or at run time - dynamically. Images can be broken into work units in a few ways: strips of pixels evenly divided among processors (strips), a few rows/columns at a time (cycles), or into blocks of pixels (blocks). The given sequential code was used to implement static vertical strips, static horizontal cycles, static blocks, and dynamic blocks.
 	
-	The communication time for all methods was found by subtracting the computation time from the total execution time. This ensure that any hidden communication was not measured as would be the case if communication time was explicitly measured. Clock time was captured before and after processing. The difference represented the computation time. The longest computation among the slaves and master was considered the total system computation time since the system would be waiting on the slowest slave. 
+	In order to observe the performance of the system, execution time and communication time were measured and reported. The communication time for all methods was found by subtracting the computation time from the total execution time. This ensure that any hidden communication was not measured as would be the case if communication time was explicitly measured. Clock time was captured before and after processing. The difference represented the computation time. The longest computation among the slaves and master was considered the total system computation time since the system would be waiting on the slowest slave. 
 	
 
 	\subsection{Static Strips}
 		The first partitioning scheme that was implemented was static vertical strips. Each processor was responsible for rendering an even share of the image as seen in Equation \ref{eqn:strip_size}.
 		
 		\begin{equation}\label{eqn:strip_size}
-			Columns to Process = \frac{Image Width}{Number of Processors}
+			\text{Columns to Process} = \frac{\text{Image Width}}{\text{Number of Processors}}
 		\end{equation}
 		\begin{center}
 			Equation \ref{eqn:strip_size}: Strip Size
@@ -224,6 +223,52 @@ Designed by: \\
 		\end{table}
 	
 		It should be noted that this algorithm is slower than the sequential code until 4 or more processors are used. An ideal speedup would match the number of processors, but it was noted that the speedup was about a quarter of the ideal speed. At 4 cores, a speedup of 1.374 was achieved, which is a bit more than a quarter of the ideal speedup of 4. At 36 cores, a speedup of 8.9 was realized, which is slightly less than the quarter of ideal speed up (9). The a quarter of ideal speedup at 64 processors would be 16, but only a speedup of 12.6 was achieved. This shows that not only is the speedup less than ideal, it becomes relatively less efficient with more processors. This is partially due to the increasing communication times. This is also partially due to the system being limited by the slowest processor. The more active processors, the greater the chance that another task from another user is slowing the machine.  
+		
+		The same test was performed with the complex image and recorded in Table \ref{tab:strips_complex}
+		
+		\begin{table}[H]
+			\caption{Performance of Vertical Strips with Simple Image}
+			\label{tab:strips_complex}
+			\centering
+			\begin{tabular}{|c|c|c|c|c|}
+				\multicolumn{5}{c}{\textbf{Static Strip Allocation}}  \\
+				\hline
+				\textbf{Processes} & \textbf{Strips} & \textbf{Exec. Time (s)} & \textbf{Speedup} & \textbf{C-to-C ratio} \\
+				\hline
+				1 (srun –n 1)   & 1  & 5829.112 & 0.615 & 0           \\
+				2 (srun –n 2)   & 2  & 5672.016 & 0.632 & 9.1E-05     \\
+				4 (srun –n 4)   & 4  & 3291.989 & 1.089 & 0.000148    \\
+				9 (srun –n 9)   & 9  & 2976.992 & 1.204 & 0.000170542 \\
+				16 (srun –n 16) & 16 & 2916.631 & 1.229 & 1.26601E-05 \\
+				20 (srun –n 20) & 20 & 1636.851 & 2.190 & 0.001745    \\
+				25 (srun –n 25) & 25 & 1613.025 & 2.223 & 0.001257    \\
+				36 (srun –n 36) & 36 & 1445.900 & 2.480 & 0.003401    \\
+				49 (srun –n 49) & 49 & 1076.076 & 3.332 & 0.0038024   \\
+				55 (srun –n 55) & 55 & 954.065  & 3.758 & 0.00427927  \\
+				64 (srun –n 64) & 64 & 820.745  & 4.368 & 0.00335578  \\
+				\hline
+			\end{tabular}
+		\end{table}
+	
+		Again the performance was graphed in order to see a trend. The trend can be seen in Figure \ref{fig:static-stips-complex}.
+		
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.7\linewidth]{Pictures/Static-stips-complex}
+			\caption{Performance Scaling of Static Vertical Strips - Complex Image}
+			\label{fig:static-stips-complex}
+		\end{figure}
+		
+		The complex image sees similar performance scaling as the simple image. The data point with 16 processors seems to be an bad data point. To further compare the simple and complex image, the speedup was compared in Figure \ref{fig:static-strips-comparison}.
+		
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.7\linewidth]{"Pictures/Static strips comparison"}
+			\caption{Speedup between Simple and Complex Image - Static Vertical Strips}
+			\label{fig:static-strips-comparison}
+		\end{figure}
+		
+		The complex image sees better speedup with fewer processors, but after 25 processors, the simple image sees a better speedup.
 	
 	\subsection{Static Cycles}
 	
@@ -313,6 +358,51 @@ Designed by: \\
 		\end{figure}
 	
 		Performance of the static horizontal cycles matches the sequential code after 2 cores are given to rendering.  After 25 processors, the benefit of adding more processors is greatly reduced. With a more complex task, this may extend to more cores.
+		
+		The scaling of additional processors was observed with a more complex image and recorded in Table \ref{tab:cycles-complex}.
+		
+		\begin{table}[H]
+			\caption{Performance of Horizontal Cycles with Simple Image as Number of Processors Varies}
+			\label{tab:cycles-complex}
+			\begin{tabular}{|c|c|c|c|c|}
+				\multicolumn{5}{c}{\textbf{Static Cyclical Allocation}} \\
+				\hline
+				\textbf{Processes} & \textbf{Strip Size} & \textbf{Exec. Time (s)} & \textbf{Speedup} & \textbf{C-to-C ratio} \\
+				\hline
+				1 (srun –n 1)    & 27 & 5851.992 & 0.613  & 0           \\
+				2 (srun –n 2)    & 27 & 2980.328 & 1.203  & 0.0003525   \\
+				4 (srun –n 4)    & 27 & 1624.194 & 2.207  & 0.000140208 \\
+				9 (srun –n 9)    & 27 & 823.469  & 4.354  & 0.000220117 \\
+				16 (srun –n 16)  & 27 & 602.712  & 5.949  & 0.00327796  \\
+				20 (srun –n 20)  & 27 & 554.838  & 6.462  & 0.00258401  \\
+				25 (srun –n 25)  & 27 & 499.828  & 7.173  & 0.0092489   \\
+				36 (srun –n 36)  & 27 & 436.104  & 8.221  & 0.00769918  \\
+				49 (srun –n 49)  & 27 & 489.487  & 7.325  & 0.0109564   \\
+				55 (srun –n 55)  & 27 & 293.276  & 12.225 & 0.0183299   \\
+				64 (srun –n 64)  & 27 & 293.355  & 12.222 & 0.0188458   \\
+				\hline
+			\end{tabular}
+		\end{table}
+	
+		To better visualize the data, Figure \ref{fig:cycles-complex} was created.
+		
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.7\linewidth]{Pictures/cycles-complex}
+			\caption{Performance Scaling with Increasing Number of Processors - Complex Image}
+			\label{fig:cycles-complex}
+		\end{figure}
+		
+		The complex image scaled much the same as the simple image. In order to better see the difference in speedup between simple and complex image processing, Figure \ref{fig:cycles-comparison} was made.
+		
+		\begin{figure}[H]
+			\centering
+			\includegraphics[width=0.7\linewidth]{Pictures/cycles-comparison}
+			\caption{Speedup for Static Horizontal Cycles with Simple and Complex Image}
+			\label{fig:cycles-comparison}
+		\end{figure}
+		
+		The complex image sees less speedup as the simple image.
 	
 	\subsection{Static Blocks}
 	
@@ -502,6 +592,8 @@ Designed by: \\
 		\end{figure}
 	
 		Static cycles with a small cycle size was the fastest static partitioning scheme, while dynamic was faster yet dynamic was based off of blocks, which proved to be the slowest. If the dynamic mapping was combined with the cyclical partitioning scheme, it seems to reason that this would yield the fastest algorithm of this style.
+		
+		The static partitioning has all of the communication happening more or less sequentially and at the same time. This leads to exposed communication time that is not masked by computation. The dynamic partitioning algorithm had much lower communication-to-computation ratios as the communication took place while other slaves were computing still.
 
 \section{Conclusion}
 
@@ -511,9 +603,6 @@ Designed by: \\
 
 	The static partitioning schemes try to balance load by giving each processor equal amounts of work. This works well if processors are homogeneous and only the ray-tracing program is running on the processors. If one processor is significantly faster (or less loaded) than the rest, it will sit idle, the converse is true too: a slower processor (or a more highly loaded one) will hold up the rest of the processors. Dynamic scheduling may have extra overhead in terms of the master not doing work and additional communication, but the more even load balancing tends to hide this overhead. The greater the difference in processors, the greater the advantage that dynamic scheduling will have.
 	
-	Overall, this project was useful in highlighting the importance of work distribution in a multi-processor application as well as the diminishing returns of adding more processors to a job. It was found that all of the parallel algorithms required 2 or more processors to match the performance of sequential code; only large jobs than can leverage multiple processors are worth parallelizing. 
-
-\section{Acknowledgments}
-	
+	Overall, this project was useful in highlighting the importance of work distribution in a multi-processor application as well as the diminishing returns of adding more processors to a job. While the cluster has issues running the more complex scene, much was still learned. It was found that all of the parallel algorithms required 2 or more processors to match the performance of sequential code; only large jobs than can leverage multiple processors are worth parallelizing. 
 
 \end{document}

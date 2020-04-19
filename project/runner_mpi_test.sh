@@ -180,14 +180,14 @@ rm $OUT_FILE
 #srun -n 49 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
 #srun -n 64 $COMMON_ARGS -c configs/twhitted.xml -p static_blocks |& tee -a $OUT_FILE
 
-#srun -n 1 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
-#srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
-#srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
-#srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
-#srun -n 25 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
-#srun -n 36 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
-#srun -n 49 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
-#srun -n 64 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 1 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 4 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 9 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 25 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 36 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 49 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
+srun -n 64 $COMMON_ARGS -c configs/box.xml -p static_blocks |& tee -a $OUT_FILE
 
 
 # Dynamic
@@ -252,7 +252,7 @@ rm $OUT_FILE
 #srun -n 16 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
 #srun -n 20 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
 #srun -n 25 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
-srun -n 36 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
-srun -n 49 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
-srun -n 55 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
-srun -n 64 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 36 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 49 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 55 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
+#srun -n 64 $COMMON_ARGS -c configs/box.xml -p static_strips_horizontal |& tee -a $OUT_FILE
